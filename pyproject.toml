@@ -1,0 +1,41 @@
+[project]
+name = "samudra"
+version = "0.1.0"
+description = "SAR-based maritime oil spill attribution and evidence system"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy",
+    "pandas",
+    "geopandas",
+    "shapely",
+    "pyproj",
+    "h3",
+    "duckdb",
+    "pydantic",
+    "fastapi",
+    "uvicorn",
+    "reportlab",
+    "matplotlib",
+    "requests",
+    "scipy",
+    "rasterio",
+    "scikit-learn",
+    "pyarrow",
+    "pyyaml",
+    "Pillow",
+    "zstandard",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Large inputs and generated outputs are reproducible, not source.
+data/raw/
+data/models/*.pt
+artifacts/*/
+!artifacts/.gitkeep

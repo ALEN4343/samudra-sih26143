@@ -1,0 +1,73 @@
+# Scoring configuration — CLAUDE.md section 4.5.
+#
+# These weights are NEVER tuned to make a scenario produce the expected answer.
+# If a ranking is wrong, print the per-term breakdown and find the broken term.
+
+# 4.5.2 — hypothesis score terms. Must sum to 1.0.
+score_weights:
+  iou: 0.40
+  centroid: 0.25
+  orientation: 0.25
+  area: 0.10
+
+# Shape of each non-IoU term.
+score_terms:
+  centroid_decay_km: 10.0      # centroid_term = exp(-offset_km / decay)
+  orientation_span_deg: 90.0   # orientation_term = 1 - (delta / span), clamped [0,1]
+
+# 4.5.4 — prior multipliers applied to the best score before softmax.
+priors:
+  temperature: 0.05            # softmax temperature
+
+  trust:
+    clean: 1.0
+    minor_flags: 0.9           # any WARN trust flag
+    major_flags: 0.6           # any CRITICAL trust flag
+    identity_mismatch: 1.3     # spoofing is evidence of intent, not innocence
+
+  behaviour:
+    normal: 1.0
+    loitering: 1.25
+    unexplained_slowdown: 1.20
+    course_deviation: 1.15
+    night_manoeuvring: 1.10
+    ais_gap_in_aoi: 1.35       # going dark over the origin envelope
+
+  proximity:
+    in_envelope: 1.0
+    envelope_edge: 0.8         # within tolerance band but not strictly inside
+
+# 4.5.5 — slick age cross-check.
+fay:
+  spreading_exponent: 0.75     # area ~ t^0.75
+  agreement_tolerance_hours: 6.0
+
+# 4.5.1 — drift physics.
+drift:
+  wind_factor: 0.03
+  wind_deflection_deg: 15.0    # clockwise, northern hemisphere
+  timestep_min: 5
+  diffusion_k_m2s: 5.0
+  n_particles: 500
+
+# 4.1 — detection gates.
+detection:
+  wind_gate_min_ms: 3.0
+  wind_gate_max_ms: 10.0
+  anomaly_sigmoid_offset: 1.5
+  tile_px: 512
+  tile_overlap_px: 64
+
+# 4.2 — baseline.
+baseline:
+  h3_resolution: 7
+  min_scenes_for_local: 15
+
+# 4.3 — CFAR.
+cfar:
+  k: 4.5
+
+# 4.4 — trust thresholds.
+trust:
+  sog_disagreement_kn: 5.0
+  ais_gap_min: 15.0
