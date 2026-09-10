@@ -180,6 +180,31 @@ def get_replay(incident_id: str, n_frames: int = 40) -> dict:
     }
 
 
+@app.get("/api/incident/{incident_id}/dossier")
+def get_dossier(incident_id: str):
+    """Generate the evidence dossier and return it as a download.
+
+    Regenerated on request rather than served from cache, so the audit entry and
+    chain hash printed inside always describe the artifacts as they are now.
+    """
+    from samudra.evidence.report import build
+
+    _load_incident(incident_id)  # 404/409 before doing the work
+    pdf = build(incident_id, ROOT)
+    return FileResponse(
+        pdf, media_type="application/pdf", filename=pdf.name,
+        headers={"Content-Disposition": f'attachment; filename="{pdf.name}"'},
+    )
+
+
+@app.get("/api/audit")
+def get_audit() -> dict:
+    """Verify the hash chain over all recorded artifacts."""
+    from samudra.evidence import integrity
+
+    return integrity.verify(root=ROOT)
+
+
 @app.get("/")
 def index():
     f = WEB / "index.html"

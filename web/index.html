@@ -87,6 +87,9 @@
         <select id="pick"></select>
         <button id="play">▶ Replay drift</button>
       </div>
+      <div class="row" style="margin-top:8px">
+        <button id="dossier" style="flex:1">📄 Generate evidence dossier</button>
+      </div>
     </header>
     <div id="err"></div>
     <div id="scroll">
@@ -284,6 +287,29 @@ function select(mmsi){
     dashArray:'4,3',fillColor:'#ffffff',fillOpacity:.10}})
     .bindPopup(`Simulated slick for ${s.vessel_name||s.mmsi}`).addTo(L_sim);
 }
+
+/* ---- evidence dossier ---- */
+$('#dossier').onclick=async()=>{
+  const b=$('#dossier'), was=b.textContent;
+  b.disabled=true; b.textContent='Generating…';
+  try{
+    // Regenerating re-hashes every artifact, so it is not instant. Fetch as a
+    // blob rather than navigating, to keep the dashboard state intact.
+    const r=await fetch(`/api/incident/${INC.incident_id}/dossier`);
+    if(!r.ok) throw new Error(`dossier → ${r.status} ${(await r.text()).slice(0,160)}`);
+    const blob=await r.blob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=`dossier_${INC.incident_id}.pdf`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 30000);
+    b.textContent='✓ Downloaded';
+    setTimeout(()=>{b.textContent=was;}, 2500);
+  }catch(e){
+    $('#err').textContent=e.message;
+    b.textContent=was;
+  }finally{ b.disabled=false; }
+};
 
 /* ---- drift replay ---- */
 $('#play').onclick=async()=>{

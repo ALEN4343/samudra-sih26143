@@ -114,16 +114,27 @@ def test_every_suspect_has_readable_rationale(result):
 def test_pipeline_never_reads_ground_truth():
     """Structural guarantee, not a convention.
 
-    synth/generate.py is exempt: it is the simulator and *authors* the file. Every
-    other module under src/ is pipeline code and must never see it.
+    Checks for an actual *read*, not a mere mention: integrity.py legitimately
+    names the file in order to exclude it from the audit manifest, and a naive
+    substring check would flag that as a violation and train us to ignore it.
+
+    synth/generate.py is exempt: it is the simulator and authors the file.
     """
+    READ_VERBS = ("read_text", "read_bytes", "json.load", "open(", "loads(")
     author = Path("src/samudra/synth/generate.py").resolve()
-    hits = [
-        p
-        for p in Path("src/samudra").rglob("*.py")
-        if p.resolve() != author and "ground_truth" in p.read_text()
-    ]
-    assert not hits, f"pipeline modules referencing ground_truth.json: {hits}"
+
+    offenders = []
+    for f in Path("src/samudra").rglob("*.py"):
+        if f.resolve() == author:
+            continue
+        for n, line in enumerate(f.read_text().splitlines(), 1):
+            if "ground_truth" not in line:
+                continue
+            code = line.split("#", 1)[0]
+            if "ground_truth" in code and any(v in code for v in READ_VERBS):
+                offenders.append(f"{f}:{n}: {line.strip()}")
+    joined = chr(10).join(offenders)
+    assert not offenders, "pipeline code reading ground truth: " + joined
 
     # And the simulator must only write it, never read it back.
     text = author.read_text()
