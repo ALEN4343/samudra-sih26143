@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SAMUDRA — Oil Spill Attribution</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --line:#30363d; --txt:#e6edf3; --dim:#8b949e;
+    --slick:#ff6b4a; --env:#ffd166; --suspect:#ff3b30; --cand:#58a6ff; --filt:#3d4450;
+    --ok:#3fb950;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);
+    font:13px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+  #app{display:flex;height:100vh}
+  #map{flex:1;background:#0d1117}
+  #side{width:420px;min-width:420px;background:var(--panel);border-left:1px solid var(--line);
+    display:flex;flex-direction:column;overflow:hidden}
+  header{padding:14px 16px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:15px;letter-spacing:.14em;font-weight:600}
+  .sub{color:var(--dim);font-size:11px;margin-top:3px}
+  .badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;
+    letter-spacing:.06em;background:#2d333b;color:var(--dim);margin-left:6px}
+  #scroll{overflow-y:auto;padding:14px 16px;flex:1}
+  section{margin-bottom:20px}
+  h2{font-size:10px;letter-spacing:.14em;color:var(--dim);margin:0 0 8px;font-weight:600;
+    text-transform:uppercase}
+  .funnel{display:flex;align-items:stretch;gap:4px}
+  .fstep{flex:1;background:#1c2128;border:1px solid var(--line);border-radius:4px;
+    padding:8px 6px;text-align:center}
+  .fstep b{display:block;font-size:20px;line-height:1.1}
+  .fstep span{font-size:9px;color:var(--dim);letter-spacing:.05em}
+  .fstep.last{border-color:var(--suspect)}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:12px}
+  .kv dt{color:var(--dim)}
+  .kv dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+  .card{border:1px solid var(--line);border-radius:5px;padding:10px 11px;margin-bottom:8px;
+    cursor:pointer;background:#1c2128;transition:border-color .12s}
+  .card:hover{border-color:#4b5563}
+  .card.sel{border-color:var(--suspect);background:#20191a}
+  .card.top{border-left:3px solid var(--suspect)}
+  .crow{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .nm{font-weight:600;font-size:13px}
+  .mm{color:var(--dim);font-size:11px;font-variant-numeric:tabular-nums}
+  .post{font-size:17px;font-variant-numeric:tabular-nums}
+  .bar{height:3px;background:#2d333b;border-radius:2px;margin:7px 0 0;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--suspect)}
+  .why{margin:9px 0 0;padding-left:15px;font-size:11.5px;color:#c9d1d9}
+  .why li{margin-bottom:3px}
+  .terms{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:9px}
+  .term{background:#0d1117;border-radius:3px;padding:5px 4px;text-align:center}
+  .term b{display:block;font-size:12px;font-variant-numeric:tabular-nums}
+  .term span{font-size:8.5px;color:var(--dim);letter-spacing:.04em}
+  button{background:#21262d;color:var(--txt);border:1px solid var(--line);border-radius:5px;
+    padding:7px 13px;cursor:pointer;font:inherit;font-size:12px}
+  button:hover{background:#2d333b}
+  button:disabled{opacity:.4;cursor:default}
+  .legend{display:flex;flex-wrap:wrap;gap:9px;font-size:10.5px;color:var(--dim)}
+  .legend i{display:inline-block;width:11px;height:3px;vertical-align:middle;margin-right:4px}
+  .row{display:flex;gap:8px;align-items:center}
+  select{background:#21262d;color:var(--txt);border:1px solid var(--line);border-radius:5px;
+    padding:6px 9px;font:inherit;font-size:12px}
+  #err{color:#ff7b72;font-size:12px;padding:10px 16px}
+  .note{font-size:10.5px;color:var(--dim);margin-top:6px;line-height:1.45}
+  .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#161b22;color:var(--txt)}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="map"></div>
+  <div id="side">
+    <header>
+      <h1>SAMUDRA<span class="badge" id="synth">—</span></h1>
+      <div class="sub" id="hdr">loading…</div>
+      <div class="row" style="margin-top:10px">
+        <select id="pick"></select>
+        <button id="play">▶ Replay drift</button>
+      </div>
+    </header>
+    <div id="err"></div>
+    <div id="scroll">
+      <section>
+        <h2>Candidate funnel</h2>
+        <div class="funnel" id="funnel"></div>
+      </section>
+      <section>
+        <h2>Conditions &amp; slick</h2>
+        <dl class="kv" id="cond"></dl>
+      </section>
+      <section>
+        <h2>Ranked suspects</h2>
+        <div id="cards"></div>
+      </section>
+      <section>
+        <h2>Map legend</h2>
+        <div class="legend">
+          <span><i style="background:var(--slick)"></i>observed slick</span>
+          <span><i style="background:var(--env)"></i>origin envelope</span>
+          <span><i style="background:var(--suspect)"></i>ranked suspect</span>
+          <span><i style="background:var(--cand)"></i>in envelope</span>
+          <span><i style="background:var(--filt)"></i>filtered out</span>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+const map=L.map('map',{zoomControl:true,attributionControl:false}).setView([17.5,70.5],7);
+// Esri Dark Gray Canvas: free, no API key. CARTO's dark_all now watermarks
+// every tile with "API KEY REQUIRED" unless you register.
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+  {maxZoom:16}).addTo(map);
+
+const L_tracks=L.layerGroup().addTo(map);
+const L_env=L.layerGroup().addTo(map);
+const L_slick=L.layerGroup().addTo(map);
+const L_sim=L.layerGroup().addTo(map);
+const L_play=L.layerGroup().addTo(map);
+
+let INC=null, TRACKS=null, SEL=null, REPLAY=null, timer=null;
+
+const fmt=(x,n=2)=>x==null||isNaN(x)?'—':Number(x).toFixed(n);
+
+async function jget(u){
+  const r=await fetch(u);
+  if(!r.ok) throw new Error(`${u} → ${r.status} ${(await r.text()).slice(0,180)}`);
+  return r.json();
+}
+
+async function boot(){
+  try{
+    const list=await jget('/api/incidents');
+    const ready=list.filter(i=>i.ready);
+    if(!ready.length){ $('#err').textContent='No analysed incidents. Run: python -m samudra.attribution --incident demo-001'; return; }
+    $('#pick').innerHTML=ready.map(i=>`<option value="${i.incident_id}">${i.incident_id}</option>`).join('');
+    $('#pick').onchange=()=>load($('#pick').value);
+    await load(ready[0].incident_id);
+  }catch(e){ $('#err').textContent=e.message; }
+}
+
+async function load(id){
+  stop(); $('#err').textContent='';
+  [L_tracks,L_env,L_slick,L_sim,L_play].forEach(l=>l.clearLayers());
+  SEL=null; REPLAY=null;
+  try{
+    INC=await jget(`/api/incident/${id}`);
+    TRACKS=await jget(`/api/incident/${id}/tracks`);
+  }catch(e){ $('#err').textContent=e.message; return; }
+
+  $('#hdr').textContent=`acquisition ${INC.acquisition_at.replace('T',' ').replace('+00:00',' UTC')}`;
+  $('#synth').textContent=INC.synthetic?'SYNTHETIC':'REAL';
+  $('#synth').style.color=INC.synthetic?'#d29922':'var(--ok)';
+
+  drawEnvelope(); drawSlick(); drawTracks(); renderFunnel(); renderCond(); renderCards();
+
+  // Frame the origin envelope, not just the slick: the envelope is the search
+  // area, and framing it shows the traffic the funnel had to sift through.
+  const b=L.geoJSON(INC.origin_envelope).getBounds();
+  map.fitBounds(b.pad(0.35));
+}
+
+function drawEnvelope(){
+  (INC.envelope_steps||[]).forEach(s=>{
+    L.geoJSON(s.geometry,{style:{color:'#ffd166',weight:.6,opacity:.22,fill:false}}).addTo(L_env);
+  });
+  L.geoJSON(INC.origin_envelope,{style:{color:'#ffd166',weight:1.6,opacity:.9,
+    fillColor:'#ffd166',fillOpacity:.06,dashArray:'5,4'}})
+    .bindPopup('Origin envelope — where the oil could have come from')
+    .addTo(L_env);
+}
+
+function drawSlick(){
+  L.geoJSON(INC.observed_slick.geometry,{style:{color:'#ff6b4a',weight:2,
+    fillColor:'#ff6b4a',fillOpacity:.42}})
+    .bindPopup(`Observed slick — ${fmt(INC.observed_slick.area_km2,1)} km²`)
+    .addTo(L_slick);
+}
+
+const STYLE={
+  suspect:{color:'#ff3b30',weight:2.0,opacity:.95},
+  envelope:{color:'#58a6ff',weight:1.3,opacity:.75},
+  filtered:{color:'#3d4450',weight:.8,opacity:.45},
+  outside:{color:'#30363d',weight:.7,opacity:.30}
+};
+
+function drawTracks(){
+  TRACKS.features.forEach(f=>{
+    const p=f.properties;
+    const ly=L.geoJSON(f,{style:STYLE[p.role]||STYLE.outside}).addTo(L_tracks);
+    ly.bindPopup(`<b>${p.vessel_name||'unknown'}</b><br>MMSI ${p.mmsi}<br>`+
+      `${p.vessel_type||''}<br>role: ${p.role}`+
+      (p.posterior!=null?`<br>posterior ${fmt(p.posterior,3)}`:''));
+    ly._mmsi=p.mmsi;
+  });
+}
+
+function renderFunnel(){
+  const f=INC.funnel;
+  const steps=[['in scene',f.total_in_scene],['in envelope',f.in_envelope],
+               ['scored',f.scored],['ranked',f.ranked]];
+  $('#funnel').innerHTML=steps.map((s,i)=>
+    `<div class="fstep ${i===steps.length-1?'last':''}"><b>${s[1]}</b><span>${s[0]}</span></div>`
+  ).join('');
+}
+
+function renderCond(){
+  const e=INC.env_summary,s=INC.observed_slick,a=INC.slick_age;
+  const rows=[
+    ['Wind',`${fmt(e.mean_wind_speed_ms,1)} m/s → ${fmt(e.mean_wind_dir_deg,0)}°`],
+    ['Current',`${fmt(e.mean_current_speed_ms,2)} m/s → ${fmt(e.mean_current_dir_deg,0)}°`],
+    ['Wind gate',e.wind_gate_pass?'PASS (3–10 m/s)':'FAIL'],
+    ['Slick area',`${fmt(s.area_km2,1)} km²`],
+    ['Long axis',`${fmt(s.major_axis_deg,0)}°`],
+    ['Eccentricity',fmt(s.eccentricity,3)],
+    ['Estimated age',`${fmt(a.best_hours,1)} h (${fmt(a.low_hours,1)}–${fmt(a.high_hours,1)})`],
+    ['Fay cross-check',`${fmt(a.fay_estimate_hours,1)} h — ${a.agrees_with_fay?'agrees':'disagrees'}`],
+  ];
+  $('#cond').innerHTML=rows.map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('');
+}
+
+function renderCards(){
+  $('#cards').innerHTML=INC.suspects.map(s=>{
+    const b=s.best_hypothesis;
+    return `<div class="card ${s.rank===1?'top':''}" data-mmsi="${s.mmsi}">
+      <div class="crow">
+        <span><span class="nm">${s.vessel_name||'unknown'}</span>
+          <span class="mm">#${s.rank} · ${s.mmsi} · ${s.vessel_type||''}</span></span>
+        <span class="post">${fmt(s.posterior,3)}</span>
+      </div>
+      <div class="bar"><i style="width:${(s.posterior*100).toFixed(1)}%"></i></div>
+      <div class="terms">
+        <div class="term"><b>${fmt(b.iou,3)}</b><span>IoU ×.40</span></div>
+        <div class="term"><b>${fmt(b.centroid_offset_km,1)}km</b><span>CENTRE ×.25</span></div>
+        <div class="term"><b>${fmt(b.orientation_delta_deg,0)}°</b><span>ORIENT ×.25</span></div>
+        <div class="term"><b>${fmt(b.area_ratio,2)}</b><span>AREA ×.10</span></div>
+      </div>
+      <ul class="why">${s.rationale.map(r=>`<li>${r}</li>`).join('')}</ul>
+    </div>`;
+  }).join('');
+  document.querySelectorAll('.card').forEach(c=>{
+    c.onclick=()=>select(Number(c.dataset.mmsi));
+  });
+}
+
+function select(mmsi){
+  SEL=mmsi;
+  document.querySelectorAll('.card').forEach(c=>
+    c.classList.toggle('sel',Number(c.dataset.mmsi)===mmsi));
+  L_tracks.eachLayer(l=>{
+    const isSel=l._mmsi===mmsi;
+    l.setStyle(isSel?{color:'#ffffff',weight:3,opacity:1}
+                    :(STYLE[(TRACKS.features.find(f=>f.properties.mmsi===l._mmsi)||{properties:{}}).properties.role]||STYLE.outside));
+    if(isSel) l.bringToFront();
+  });
+  L_sim.clearLayers();
+  const s=INC.suspects.find(x=>x.mmsi===mmsi);
+  if(s) L.geoJSON(s.best_hypothesis.simulated_geometry,{style:{color:'#ffffff',weight:1.4,
+    dashArray:'4,3',fillColor:'#ffffff',fillOpacity:.10}})
+    .bindPopup(`Simulated slick for ${s.vessel_name||s.mmsi}`).addTo(L_sim);
+}
+
+/* ---- drift replay ---- */
+$('#play').onclick=async()=>{
+  if(timer){ stop(); return; }
+  try{
+    if(!REPLAY) REPLAY=await jget(`/api/incident/${INC.incident_id}/replay`);
+  }catch(e){ $('#err').textContent=e.message; return; }
+  let i=0;
+  $('#play').textContent='■ Stop';
+  timer=setInterval(()=>{
+    if(i>=REPLAY.frames.length){ stop(); return; }
+    const f=REPLAY.frames[i++];
+    L_play.clearLayers();
+    for(let k=0;k<f.lat.length;k++){
+      L.circleMarker([f.lat[k],f.lon[k]],{radius:1.6,color:'#ff6b4a',weight:0,
+        fillColor:'#ff6b4a',fillOpacity:.55}).addTo(L_play);
+    }
+    $('#hdr').textContent=`replay — ${f.hours_after_release.toFixed(1)} h after release `+
+      `(${REPLAY.vessel_name||REPLAY.mmsi})`;
+  },110);
+};
+
+function stop(){
+  if(timer){clearInterval(timer);timer=null;}
+  $('#play').textContent='▶ Replay drift';
+  L_play.clearLayers();
+  if(INC) $('#hdr').textContent=
+    `acquisition ${INC.acquisition_at.replace('T',' ').replace('+00:00',' UTC')}`;
+}
+
+boot();
+</script>
+</body>
+</html>

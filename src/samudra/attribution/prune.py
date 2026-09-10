@@ -113,6 +113,7 @@ def prune(
     # total_in_scene: reporting inside the AOI during the search window.
     lo_t, hi_t = search_window if search_window else (-np.inf, np.inf)
     in_scene = 0
+    in_scene_mmsis: list[int] = []
     for tr in tracks.values():
         m = (tr.t >= lo_t) & (tr.t <= hi_t)
         if not m.any():
@@ -125,6 +126,7 @@ def prune(
             )
         if m.any():
             in_scene += 1
+            in_scene_mmsis.append(tr.mmsi)
 
     # The envelope is sampled hourly, but drift is continuous. Test each vessel
     # across the half-hour either side of a step so the checks tile the timeline
@@ -164,5 +166,7 @@ def prune(
         "in_envelope": len(candidates),
         "scored": 0,
         "ranked": 0,
+        "in_scene_mmsis": in_scene_mmsis,
+        "in_envelope_mmsis": [c.mmsi for c in candidates],
     }
     return candidates, funnel

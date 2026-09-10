@@ -145,6 +145,8 @@ def _integrate(
     t_from: np.ndarray,
     t_to: float,
     rng: np.random.Generator,
+    snapshot_interval_s: float | None = None,
+    snapshots: list | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Euler integration with diffusion, forward or backward in time.
 
@@ -163,9 +165,22 @@ def _integrate(
     sign = -1.0 if backward else 1.0
 
     t_now = float(t_from.max()) if backward else float(t_from.min())
+    next_snap = t_now
     guard = 0
     while (t_now > t_to) if backward else (t_now < t_to):
         guard += 1
+        if snapshots is not None and snapshot_interval_s and (
+            (t_now <= next_snap) if backward else (t_now >= next_snap)
+        ):
+            released = (t_from >= t_now) if backward else (t_from <= t_now)
+            snapshots.append(
+                {
+                    "t": t_now,
+                    "lat": lat[released].tolist(),
+                    "lon": lon[released].tolist(),
+                }
+            )
+            next_snap = t_now + sign * snapshot_interval_s
         if guard > 200_000:
             raise RuntimeError("Drift integration failed to terminate — check timestamps.")
 
@@ -253,6 +268,59 @@ def advect_forward(
     age_h = (t1 - t0) / 3600.0
     poly = particles_to_polygon(proj, lat, lon, fay_radius_m(age_h))
     return lat, lon, poly
+
+
+def replay_forward(
+    release_lat: float,
+    release_lon: float,
+    release_time: datetime,
+    target_time: datetime,
+    env_field: EnvField,
+    track: np.ndarray | None = None,
+    release_duration_min: float = 45.0,
+    n_particles: int = 300,
+    n_frames: int = 40,
+    seed: int = 0,
+) -> list[dict]:
+    """Same forward simulation, but recording particle positions along the way.
+
+    Feeds the dashboard's drift replay: the animation is the actual winning
+    hypothesis being re-simulated, not a decorative loop.
+    """
+    rng = np.random.default_rng(seed)
+    t0, t1 = release_time.timestamp(), target_time.timestamp()
+    if t1 <= t0:
+        raise ValueError("target_time must be after release_time")
+
+    proj = Projector(release_lat, release_lon)
+    dur_s = release_duration_min * 60.0
+
+    seg = None
+    if track is not None and len(track):
+        s = track[(track[:, 0] >= t0) & (track[:, 0] <= t0 + dur_s)]
+        seg = s if len(s) >= 2 else None
+
+    if seg is not None:
+        pick = rng.integers(0, len(seg), n_particles)
+        p_lat = seg[pick, 1] + rng.normal(0, 0.0015, n_particles)
+        p_lon = seg[pick, 2] + rng.normal(0, 0.0015, n_particles)
+        p_t = seg[pick, 0]
+    else:
+        p_lat = np.full(n_particles, release_lat)
+        p_lon = np.full(n_particles, release_lon)
+        p_t = np.full(n_particles, t0)
+
+    frames: list[dict] = []
+    interval = max((t1 - t0) / max(n_frames, 1), 60.0)
+    lat, lon = _integrate(
+        proj, env_field, p_lat, p_lon, p_t, t1, rng,
+        snapshot_interval_s=interval, snapshots=frames,
+    )
+    frames.append({"t": t1, "lat": lat.tolist(), "lon": lon.tolist()})
+    for f in frames:
+        f["time"] = datetime.fromtimestamp(f["t"], tz=timezone.utc).isoformat()
+        f["hours_after_release"] = round((f["t"] - t0) / 3600.0, 3)
+    return frames
 
 
 def advect_reverse(

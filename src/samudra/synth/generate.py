@@ -717,14 +717,14 @@ def generate(
     decoy_anchors = []
     for _ in range(n_decoys):
         bearing = rng.uniform(0, 2 * math.pi)
-        dist_km = rng.uniform(4.0, 22.0)
+        dist_km = rng.uniform(6.0, 38.0)
         dlat = dist_km * math.cos(bearing) / d_km
         dlon = dist_km * math.sin(bearing) / (d_km * math.cos(math.radians(true_lat)))
         decoy_anchors.append(
             (
                 float(np.clip(true_lon + dlon, min_lon + 0.05, max_lon - 0.05)),
                 float(np.clip(true_lat + dlat, min_lat + 0.05, max_lat - 0.05)),
-                release_at.timestamp() + float(rng.uniform(-2.5, 2.5)) * 3600.0,
+                release_at.timestamp() + float(rng.uniform(-3.5, 3.5)) * 3600.0,
             )
         )
     decoys = build_tracks(
