@@ -28,9 +28,9 @@ import pandas as pd
 import rasterio
 from rasterio.transform import from_bounds
 from pyproj import CRS, Transformer
-from scipy.ndimage import gaussian_filter
+from scipy.ndimage import gaussian_filter, zoom
 from scipy.spatial import Delaunay
-from shapely.geometry import MultiPoint, Polygon, mapping
+from shapely.geometry import MultiPoint, Point, Polygon, mapping
 from shapely.ops import unary_union
 
 # --------------------------------------------------------------------------
@@ -46,7 +46,7 @@ FAY_EXPONENT = 0.75
 KN_TO_MS = 0.514444
 
 # Scene raster
-SCENE_PX_M = 100.0  # metres per pixel
+SCENE_PX_M = 150.0  # metres per pixel
 SEA_SIGMA0_DB = -14.0
 SLICK_SIGMA0_DB = -26.0
 LOOKALIKE_SIGMA0_DB = -22.0
@@ -358,18 +358,21 @@ def build_tracks(
     t_end: datetime,
     n_vessels: int,
 ) -> list[Vessel]:
-    """Vessels transiting the AOI over the window, 1-5 minute reporting."""
+    """Vessels transiting the AOI over the window, 1-5 minute reporting.
+
+    Each vessel is anchored to a closest-approach point inside the AOI at a time
+    drawn across the window, rather than departing from outside and transiting.
+    Anchoring this way keeps AOI occupancy roughly uniform in time; departure-time
+    sampling drains the AOI before the acquisition and leaves the scene empty.
+    """
     min_lon, min_lat, max_lon, max_lat = bounds
     used: set[int] = set()
     vessels: list[Vessel] = []
 
-    # AOI corners in metres, to size the transits.
-    cx, cy = proj.to_m((min_lon + max_lon) / 2, (min_lat + max_lat) / 2)
-    x0, y0 = proj.to_m(min_lon, min_lat)
-    x1, y1 = proj.to_m(max_lon, max_lat)
-    span = max(x1 - x0, y1 - y0)
-
-    for _ in range(n_vessels):
+    window_s = (t_end - t_start).total_seconds()
+    attempts = 0
+    while len(vessels) < n_vessels and attempts < n_vessels * 12:
+        attempts += 1
         mmsi, name, imo, vtype, length, flag = _make_identity(rng, used)
         v = Vessel(mmsi, name, imo, vtype, length, flag)
 
@@ -379,39 +382,33 @@ def build_tracks(
         speed_ms = speed_kn * KN_TO_MS
         interval_s = float(rng.integers(1, 6)) * 60.0
 
-        # Enter on a random bearing through a point offset from the centre.
+        # Anchor point inside the AOI, and the time the vessel is there. The time
+        # range overruns t_end so vessels are still arriving at the acquisition.
+        px = float(rng.uniform(min_lon, max_lon))
+        py = float(rng.uniform(min_lat, max_lat))
+        anchor_x, anchor_y = proj.to_m(px, py)
+        t_mid = t_start.timestamp() + float(rng.uniform(-0.10, 1.15)) * window_s
+
+        n_steps = int(window_s // interval_s) + 1
+        t = t_start.timestamp() + np.arange(n_steps) * interval_s
+
         course = float(rng.uniform(0, 360))
-        crad = math.radians(course)
-        ux, uy = math.sin(crad), math.cos(crad)
-        # Perpendicular offset so tracks do not all cross the centre.
-        off = float(rng.uniform(-0.45, 0.45)) * span
-        sx = cx - ux * span * 0.75 - uy * off
-        sy = cy - uy * span * 0.75 + ux * off
-
-        depart = t_start + timedelta(
-            seconds=float(rng.uniform(0, (t_end - t_start).total_seconds() * 0.55))
-        )
-
-        n_steps = int((t_end - depart).total_seconds() // interval_s)
-        if n_steps < 20:
-            continue
-
-        t = np.array([depart.timestamp() + i * interval_s for i in range(n_steps)])
-        elapsed = t - depart.timestamp()
-        # Gentle course wander so headings are not perfectly straight.
         wander = np.cumsum(rng.normal(0, 0.25, n_steps)) * 0.6
         hdg = course + wander
         hr = np.radians(hdg)
         dx = np.cumsum(np.sin(hr)) * speed_ms * interval_s
         dy = np.cumsum(np.cos(hr)) * speed_ms * interval_s
-        x = sx + dx
-        y = sy + dy
+
+        i_mid = int(np.clip(np.searchsorted(t, t_mid), 0, n_steps - 1))
+        x = anchor_x + (dx - dx[i_mid])
+        y = anchor_y + (dy - dy[i_mid])
 
         lon, lat = proj.to_deg(x, y)
         sog = np.full(n_steps, speed_kn) + rng.normal(0, 0.25, n_steps)
 
         inside = (lon >= min_lon) & (lon <= max_lon) & (lat >= min_lat) & (lat <= max_lat)
         if inside.sum() < 20:
+            used.discard(mmsi)
             continue
 
         for i in np.flatnonzero(inside):
@@ -424,6 +421,10 @@ def build_tracks(
             )
         vessels.append(v)
 
+    if len(vessels) < n_vessels:
+        raise RuntimeError(
+            f"Only built {len(vessels)} of {n_vessels} tracks in {attempts} attempts."
+        )
     return vessels
 
 
@@ -467,8 +468,6 @@ def inject_anomalies(rng, vessels: list[Vessel], protect_mmsi: int) -> dict[str,
             r["lon"] = base_lon + 0.004 * math.cos(ang)
             r["sog"] = float(abs(rng.normal(0.4, 0.2)))
             r["cog"] = float((math.degrees(ang) + 90) % 360)
-        for r in v.rows[i0 + span :]:
-            r["lat"] += base_lat - v.rows[i0 + span - 1]["lat"] if False else 0.0
         planted["loiter"].append(v.mmsi)
 
     for v in take(1):  # sharp unexplained slowdown
@@ -493,6 +492,7 @@ def render_scene(
     slick: Polygon,
     vessel_positions: list[tuple[float, float]],
     rng_seed: int,
+    aoi: tuple[float, float, float, float] | None = None,
 ) -> tuple[dict, list[dict]]:
     """A SAR-like GeoTIFF: speckled sea, a dark slick, look-alikes, bright ships.
 
@@ -500,9 +500,15 @@ def render_scene(
     in any image viewer while remaining quantitatively recoverable. The mapping is
     written into the GeoTIFF tags.
     """
-    cx, cy = slick.centroid.x, slick.centroid.y
-    half_lon, half_lat = 0.55, 0.42
-    b = (cx - half_lon, cy - half_lat, cx + half_lon, cy + half_lat)
+    # The scene covers the whole AOI. A real Sentinel-1 IW frame is ~250x180 km and
+    # would cover only part of a 5-degree AOI; making them coincide is a deliberate
+    # simplification so that "in scene" and "in AOI" mean the same thing, which
+    # keeps the layer 6 funnel unambiguous.
+    if aoi is not None:
+        b = tuple(aoi)
+    else:
+        cx, cy = slick.centroid.x, slick.centroid.y
+        b = (cx - 0.55, cy - 0.42, cx + 0.55, cy + 0.42)
 
     x0, y0 = proj.to_m(b[0], b[1])
     x1, y1 = proj.to_m(b[2], b[3])
@@ -513,8 +519,12 @@ def render_scene(
     sea_lin = 10 ** (SEA_SIGMA0_DB / 10.0)
     img = np.full((h, w), sea_lin, dtype=np.float32)
 
-    # Gentle large-scale modulation (wind streaks).
-    img *= (1.0 + 0.10 * _smooth_noise(rng, (h, w), (h / 14.0, w / 14.0))).astype(np.float32)
+    # Gentle large-scale modulation (wind streaks). Generated on a coarse grid and
+    # zoomed: a gaussian_filter with sigma of a few hundred pixels on a scene this
+    # size takes minutes, and the result is identical to smooth-then-upsample.
+    coarse = _smooth_noise(rng, (48, 48), (48 / 14.0, 48 / 14.0))
+    streaks = zoom(coarse, (h / 48.0, w / 48.0), order=3)[:h, :w]
+    img *= (1.0 + 0.10 * streaks).astype(np.float32)
 
     lon_grid = np.linspace(b[0], b[2], w)
     lat_grid = np.linspace(b[3], b[1], h)  # north-up raster
@@ -535,10 +545,11 @@ def render_scene(
     # false positives detection has to reject.
     lookalikes = []
     for _ in range(2):
-        lo = float(rng.uniform(b[0] + 0.08, b[2] - 0.08))
-        la = float(rng.uniform(b[1] + 0.08, b[3] - 0.08))
-        if Polygon(slick).buffer(0.06).contains(MultiPoint([(lo, la)]).centroid):
-            lo += 0.22
+        for _try in range(40):
+            lo = float(rng.uniform(b[0] + 0.20, b[2] - 0.20))
+            la = float(rng.uniform(b[1] + 0.20, b[3] - 0.20))
+            if not slick.buffer(0.10).contains(Point(lo, la)):
+                break
         rx, ry = float(rng.uniform(0.03, 0.07)), float(rng.uniform(0.02, 0.05))
         ang = float(rng.uniform(0, math.pi))
         th = np.linspace(0, 2 * math.pi, 40)
@@ -628,17 +639,38 @@ def generate(
     release_at = acquisition_at - timedelta(hours=age_hours)
     release_duration_min = 45.0
 
-    eligible = []
+    # The release must also sit in the AOI interior, so the drifted slick and its
+    # scene footprint stay inside the area of interest rather than running off a
+    # corner.
+    ilon = (max_lon - min_lon) * 0.20
+    ilat = (max_lat - min_lat) * 0.20
+    interior = (min_lon + ilon, min_lat + ilat, max_lon - ilon, max_lat - ilat)
+
+    eligible, interior_eligible = [], []
     for v in vessels:
         ts = np.array([r["t"] for r in v.rows])
-        if ts.min() <= release_at.timestamp() and ts.max() >= (
-            release_at.timestamp() + release_duration_min * 60
+        if not (
+            ts.min() <= release_at.timestamp()
+            and ts.max() >= release_at.timestamp() + release_duration_min * 60
         ):
-            eligible.append(v)
+            continue
+        eligible.append(v)
+        at = min(v.rows, key=lambda r: abs(r["t"] - release_at.timestamp()))
+        if (
+            interior[0] <= at["lon"] <= interior[2]
+            and interior[1] <= at["lat"] <= interior[3]
+        ):
+            interior_eligible.append(v)
+
     if not eligible:
         raise RuntimeError("No vessel is in the AOI across the release window.")
 
-    culprit = eligible[int(rng.integers(len(eligible)))]
+    # Prefer a vessel that could plausibly discharge this volume. A tug producing a
+    # 50 km2 slick invites the obvious objection during the demo.
+    pool_ = interior_eligible or eligible
+    plausible = [v for v in pool_ if "Tanker" in v.vtype or v.vtype in ("Bulk Carrier", "Container Ship", "General Cargo")]
+    pool_ = plausible or pool_
+    culprit = pool_[int(rng.integers(len(pool_)))]
 
     # Release oil continuously while the vessel steams — a line source. This is
     # what makes a real discharge elongated and aligned with the ship's course,
@@ -689,15 +721,20 @@ def generate(
     ais.to_parquet(out / "ais.parquet", index=False)
 
     # --- vessel positions at acquisition, for the scene and CFAR check ----
+    # Nearest fix in time to acquisition, not the last fix: a track clipped at the
+    # AOI edge still has a valid position if it was reporting near acquisition.
     positions = []
+    acq_ts = acquisition_at.timestamp()
     for v in vessels:
         if not v.rows:
             continue
-        last = max(v.rows, key=lambda r: r["t"])
-        if acquisition_at.timestamp() - last["t"] < 1800:
-            positions.append((last["lon"], last["lat"]))
+        near = min(v.rows, key=lambda r: abs(r["t"] - acq_ts))
+        if abs(near["t"] - acq_ts) <= 1800:
+            positions.append((near["lon"], near["lat"]))
 
-    scene_meta, _ = render_scene(rng, proj, out / "scene.tif", slick, positions, seed)
+    scene_meta, _ = render_scene(
+        rng, proj, out / "scene.tif", slick, positions, seed, aoi=bounds
+    )
 
     # --- observed slick ----------------------------------------------------
     (out / "observed_slick.geojson").write_text(
