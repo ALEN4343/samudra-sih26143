@@ -1,51 +1,195 @@
-"""Single source of truth for every data structure crossing a module boundary.
+"""Data contracts — CLAUDE.md section 4.
 
-Implements CLAUDE.md section 3. Do not change this file without asking first.
+Part A reproduces section 4 of the build contract exactly: same model names,
+same field names, same types. Every module is built against these independently,
+so they change only by explicit request.
 
-Conventions:
-  - All timestamps are timezone-aware UTC.
-  - All geometry is GeoJSON, EPSG:4326, longitude first.
+Part B holds models the pipeline needs that section 4 does not define. They are
+kept separate and labelled so the boundary between "the contract" and "what this
+build added" stays visible.
+
+All models are pydantic v2. All timestamps UTC. All geometry GeoJSON EPSG:4326,
+longitude first.
 """
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
+from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class _Base(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
 
 
-def _as_utc(v: datetime) -> datetime:
-    """Attach UTC to a naive datetime, convert an aware one. Never guess local time."""
-    if v.tzinfo is None:
-        return v.replace(tzinfo=timezone.utc)
-    return v.astimezone(timezone.utc)
+# ==========================================================================
+# PART A — CLAUDE.md section 4, verbatim
+# ==========================================================================
 
 
-# --------------------------------------------------------------------------
-# Vessel and AIS
-# --------------------------------------------------------------------------
+class Scene(_Base):
+    scene_id: str
+    sensor: Literal["S1_GRD", "S2_MSI", "S3_SLSTR"]
+    acquired_at: datetime  # UTC, always
+    footprint: dict[str, Any]  # GeoJSON Polygon
+    raster_path: Path
+    incidence_angle_deg: float | None = None
+
+
+class EnvSample(_Base):
+    lat: float
+    lon: float
+    t: datetime
+    wind_speed_ms: float
+    wind_dir_deg: float  # meteorological convention
+    current_u_ms: float  # eastward
+    current_v_ms: float  # northward
+
+
+class SlickDetection(_Base):
+    slick_id: str
+    scene_id: str
+    polygon: dict[str, Any]  # GeoJSON Polygon, EPSG:4326
+    area_km2: float
+    perimeter_km: float
+    shape_complexity: float  # P / (2 * sqrt(pi * A)); 1.0 = circle
+    eccentricity: float
+    major_axis_deg: float = Field(ge=0, le=180)  # key attribution feature
+    mean_sigma0_db: float
+    contrast_db: float  # background mean - slick mean
+    edge_gradient: float
+    cnn_oil_prob: float = Field(ge=0, le=1)
+    cnn_lookalike_prob: float = Field(ge=0, le=1)
+    baseline_anomaly_z: float
+    wind_gate_pass: bool
+    confidence: float = Field(ge=0, le=1)  # fused, calibrated
 
 
 class AisPoint(_Base):
-    """A single AIS broadcast. Referenced by section 3, defined here."""
-
     mmsi: int
     t: datetime
     lat: float = Field(ge=-90, le=90)
     lon: float = Field(ge=-180, le=180)
-    sog: float
+    sog: float | None = None
     cog: float | None = None
     heading: float | None = None
 
-    _utc = field_validator("t")(_as_utc)
+
+class SarShip(_Base):
+    target_id: str
+    scene_id: str
+    lat: float
+    lon: float
+    est_length_m: float
+    peak_sigma0_db: float
+
+
+class AisTrack(_Base):
+    mmsi: int
+    imo: int | None = None
+    name: str | None = None
+    ship_type: int | None = None  # numeric AIS code
+    flag_mid: int | None = None  # MMSI MID prefix
+    declared_length_m: float | None = None
+    points: list[AisPoint] = Field(default_factory=list)  # sorted by t
+    gaps: list[tuple[datetime, datetime]] = Field(default_factory=list)
+
+
+class TrustScore(_Base):
+    mmsi: int
+    scene_id: str
+    score: float = Field(ge=0, le=1)  # 1 = fully credible
+    trust_flags: list[str] = Field(default_factory=list)
+    behaviour_flags: list[str] = Field(default_factory=list)
+    sar_corroborated: bool = False
+    classification: Literal["MATCHED", "DARK", "PHANTOM", "IDENTITY_MISMATCH"]
+
+
+class ReleaseHypothesis(_Base):
+    mmsi: int
+    release_at: datetime
+    release_lat: float
+    release_lon: float
+    simulated_polygon: dict[str, Any]
+    iou: float
+    centroid_offset_km: float
+    orientation_delta_deg: float
+    area_ratio: float
+    geometric_score: float
+
+
+class Suspect(_Base):
+    mmsi: int
+    name: str | None = None
+    best_hypothesis: ReleaseHypothesis
+    likelihood: float  # normalised across candidates
+    trust_prior: float
+    behaviour_prior: float
+    type_risk_prior: float
+    gap_coincidence: bool
+    prior_offences: int
+    posterior: float  # final ranking value
+    rationale: list[str] = Field(default_factory=list)
+
+
+class SlickAge(_Base):
+    incident_id: str
+    estimated_range_hours: tuple[float, float]  # across top-3 hypotheses
+    fay_spreading_estimate_hours: float | None = None
+    agreement: bool
+
+
+class Scenario(_Base):
+    """Synthetic ground truth ONLY.
+
+    No pipeline module other than tests may read this. tests/test_attribution.py
+    enforces it by scanning src/ for reads of ground_truth.json.
+    """
+
+    scenario_id: str
+    culprit_mmsi: int
+    true_release_at: datetime
+    true_release_lat: float
+    true_release_lon: float
+    acquisition_at: datetime
+    aoi_bounds: tuple[float, float, float, float]  # min_lon, min_lat, max_lon, max_lat
+
+
+# ==========================================================================
+# PART B — additions this build needed
+#
+# Not in section 4. Kept separate so the contract boundary stays visible. If any
+# of these should be promoted into the contract, that is a decision to make
+# explicitly rather than by drift.
+# ==========================================================================
+
+
+class Flag(_Base):
+    """Structured form of the trust/behaviour flag strings in TrustScore.
+
+    Section 4 types those as list[str]. Carrying severity and location as well
+    lets the dossier group flags by seriousness and put them on a map; `code`
+    alone is what serialises back into the contract's list[str].
+    """
+
+    code: str
+    severity: Literal["INFO", "WARN", "CRITICAL"]
+    detail: str
+    at: datetime | None = None
+    lat: float | None = None
+    lon: float | None = None
 
 
 class AisGap(_Base):
+    """Expanded form of the (start, end) tuple in AisTrack.gaps.
+
+    Position at both ends is needed to answer 'where did it go dark', which the
+    bare timestamp pair cannot.
+    """
+
     start_t: datetime
     end_t: datetime
     duration_min: float
@@ -54,61 +198,14 @@ class AisGap(_Base):
     end_lat: float
     end_lon: float
 
-    _utc = field_validator("start_t", "end_t")(_as_utc)
-
-
-class AisTrack(_Base):
-    mmsi: int
-    points: list[AisPoint]
-    vessel_name: str | None = None
-    imo: int | None = None
-    vessel_type: str | None = None
-    length_m: float | None = None
-    flag: str | None = None
-    gaps: list[AisGap] = Field(default_factory=list)
-
-
-class VesselDetection(_Base):
-    """A radar target from CFAR (layer 4), independent of any AIS report."""
-
-    det_id: str
-    lat: float
-    lon: float
-    length_m: float | None = None
-    peak_intensity: float
-    matched_mmsi: int | None = None
-
-
-# --------------------------------------------------------------------------
-# Detection
-# --------------------------------------------------------------------------
-
-
-class SlickPolygon(_Base):
-    slick_id: str
-    geometry: dict[str, Any]
-    area_km2: float
-    perimeter_km: float
-    centroid_lat: float
-    centroid_lon: float
-    major_axis_deg: float = Field(ge=0, le=180)
-    minor_axis_m: float
-    major_axis_m: float
-    eccentricity: float
-    shape_complexity: float
-    mean_sigma0_db: float
-    cnn_oil_prob: float = Field(ge=0, le=1)
-    anomaly_z: float
-    wind_gate_pass: bool
-    confidence: float = Field(ge=0, le=1)
-
-
-# --------------------------------------------------------------------------
-# Environment
-# --------------------------------------------------------------------------
-
 
 class EnvField(_Base):
+    """Gridded environment. EnvSample is a point; drift needs a field.
+
+    Vectors are 'flowing toward', not the meteorological 'coming from' used by
+    EnvSample.wind_dir_deg.
+    """
+
     lats: list[float]
     lons: list[float]
     times: list[datetime]
@@ -119,6 +216,8 @@ class EnvField(_Base):
 
 
 class EnvSummary(_Base):
+    """AOI-mean conditions at acquisition, for the dashboard and dossier."""
+
     mean_wind_speed_ms: float
     mean_wind_dir_deg: float
     mean_current_speed_ms: float
@@ -126,98 +225,19 @@ class EnvSummary(_Base):
     wind_gate_pass: bool
 
 
-# --------------------------------------------------------------------------
-# Trust and behaviour
-# --------------------------------------------------------------------------
-
-
-class Flag(_Base):
-    code: str
-    severity: Literal["INFO", "WARN", "CRITICAL"]
-    detail: str
-    at: datetime | None = None
-    lat: float | None = None
-    lon: float | None = None
-
-
-class TrustScore(_Base):
-    mmsi: int
-    score: float = Field(ge=0, le=1)
-    classification: Literal["MATCHED", "DARK", "PHANTOM", "IDENTITY_MISMATCH"]
-    trust_flags: list[Flag] = Field(default_factory=list)
-    behaviour_flags: list[Flag] = Field(default_factory=list)
-
-
-# --------------------------------------------------------------------------
-# Attribution
-# --------------------------------------------------------------------------
-
-
-class Hypothesis(_Base):
-    hypothesis_id: str
-    mmsi: int
-    release_at: datetime
-    release_lat: float
-    release_lon: float
-    simulated_geometry: dict[str, Any]
-    iou: float
-    centroid_offset_km: float
-    orientation_delta_deg: float
-    area_ratio: float
-    score: float
-
-    _utc = field_validator("release_at")(_as_utc)
-
-
-class Suspect(_Base):
-    mmsi: int
-    vessel_name: str | None = None
-    rank: int
-    posterior: float = Field(ge=0, le=1)
-    best_hypothesis: Hypothesis
-    top_hypotheses: list[Hypothesis] = Field(default_factory=list)
-    trust_prior: float = 1.0
-    behaviour_prior: float = 1.0
-    proximity_prior: float = 1.0
-    rationale: list[str] = Field(default_factory=list)
-
-
 class FunnelCounts(_Base):
+    """CLAUDE.md 5.5 requires the funnel be reported, but does not type it."""
+
     total_in_scene: int
     in_envelope: int
     scored: int
     ranked: int
 
 
-class SlickAge(_Base):
-    best_hours: float
-    low_hours: float
-    high_hours: float
-    fay_estimate_hours: float
-    agrees_with_fay: bool
-
-
-# --------------------------------------------------------------------------
-# Incident and forecast
-# --------------------------------------------------------------------------
-
-
-class Incident(_Base):
-    incident_id: str
-    acquisition_at: datetime
-    aoi_bounds: tuple[float, float, float, float]
-    observed_slick: SlickPolygon
-    origin_envelope: dict[str, Any]
-    env_summary: EnvSummary
-    funnel: FunnelCounts
-    suspects: list[Suspect] = Field(default_factory=list)
-    slick_age: SlickAge | None = None
-
-    _utc = field_validator("acquisition_at")(_as_utc)
-
-
 class ForecastPolygon(_Base):
-    horizon_hours: int
+    """Layer 8 output. Section 5.6 specifies the behaviour, not the shape."""
+
+    horizon_hours: int  # 24, 48, 72
     geometry: dict[str, Any]
     uncertainty_cone: dict[str, Any]
     area_km2: float
@@ -226,20 +246,16 @@ class ForecastPolygon(_Base):
     affected_shoreline_km: float = 0.0
 
 
-# --------------------------------------------------------------------------
-# Synthetic ground truth
-# --------------------------------------------------------------------------
+class Incident(_Base):
+    """The artifacts/<incident_id>/incident.json envelope."""
 
-
-class Scenario(_Base):
-    """Planted ground truth. Only the test suite may read this back."""
-
-    scenario_id: str
-    culprit_mmsi: int
-    true_release_at: datetime
-    true_release_lat: float
-    true_release_lon: float
+    incident_id: str
     acquisition_at: datetime
     aoi_bounds: tuple[float, float, float, float]
-
-    _utc = field_validator("true_release_at", "acquisition_at")(_as_utc)
+    synthetic: bool = False
+    observed_slick: SlickDetection
+    origin_envelope: dict[str, Any]
+    env_summary: EnvSummary
+    funnel: FunnelCounts
+    suspects: list[Suspect] = Field(default_factory=list)
+    slick_age: SlickAge

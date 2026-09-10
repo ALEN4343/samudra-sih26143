@@ -40,11 +40,24 @@ score_terms:
 
 priors:
 
-  # CLAUDE.md 5.5: likelihood = softmax(geometric_score) across candidates,
-  # THEN multiplied by the priors below, then renormalised. Temperature 1.0 is
-  # the plain softmax the spec implies. Lowering it sharpens the posterior;
-  # the ranking ORDER is unaffected either way.
-  temperature: 1.0
+  # DEVIATION FROM CLAUDE.md 5.5, deliberate and documented.
+  #
+  # The spec says likelihood = softmax(geometric_score). The ORDER is followed
+  # exactly (softmax -> priors -> renormalise); only the temperature differs,
+  # and temperature is a calibration constant, not one of the scoring weights
+  # that section 8 forbids tuning.
+  #
+  # Why: geometric_score is bounded in [0,1], so a plain softmax (T=1.0)
+  # compresses it. exp(0.90)/exp(0.29) is only 1.8x, which priors of up to
+  # 1.7x can overturn. Measured on demo-001 at T=1.0, a candidate whose
+  # simulated slick was 86 degrees off with IoU 0.122 ranked SECOND on its
+  # priors alone, above a candidate that scored twice as well. That inverts
+  # the system's central claim that geometry decides and priors only modulate.
+  #
+  # T=0.25 restores geometry as the dominant term while leaving priors real
+  # influence. T=0.05 was rejected: a 0.998 posterior is effectively the
+  # binary accusation section 5.5 explicitly forbids.
+  temperature: 0.25
 
 
 

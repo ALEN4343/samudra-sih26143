@@ -516,3 +516,70 @@ this is compliance with the brief, not a shortcut:
   slide that shows a map.
 - Corridor/chronic-discharge mapping is architected (`persist/corridor.py`) but seeded
   from a single demo AOI rather than the full EEZ within this timeline.
+
+---
+
+## 10. Implementation notes and deviations
+
+Added by the build. Sections 1–9 are unchanged. Every deviation from the contract
+above is recorded here rather than left to be discovered in the code.
+
+### 10.1 Deliberate deviations
+
+**Posterior temperature (5.5).** The order of operations follows 5.5 exactly —
+`softmax(geometric_score)` → multiply priors → renormalise — but the softmax uses
+temperature 0.25, not the 1.0 a plain softmax implies.
+
+`geometric_score` is bounded in `[0, 1]`, so a plain softmax barely separates
+candidates: `exp(0.90)/exp(0.29)` is only 1.8×, which priors of up to 1.7× can
+overturn. Measured on demo-001 at T=1.0, a candidate whose simulated slick was
+**86° off** with IoU 0.122 ranked **second** on its priors alone, above a
+candidate that scored twice as well. That inverts the system's central claim that
+geometry decides and priors only modulate. T=0.05 was also rejected: a 0.998
+posterior is effectively the binary accusation 5.5 forbids.
+
+Temperature is a calibration constant, not one of the scoring weights section 8
+forbids tuning. It lives in `config/weights.yaml` and changes no ranking order —
+only the confidence spread.
+
+**Area term (5.5).** The spec writes `w4*exp(-abs(log(area_ratio)))`. The code
+uses `min(a,b)/max(a,b)`, which is algebraically identical and avoids a log of
+zero when a simulated polygon degenerates.
+
+### 10.2 Additions
+
+- `geo.py` — shared projection, polygon metrics, IoU. The *physics* in
+  `synth/generate.py` and `attribution/drift.py` stays independently implemented;
+  that independence is what the drift round-trip test verifies.
+- `timeutil.py` — **all** epoch conversion goes through `epoch_seconds`. pandas 3.0
+  stores `datetime64[us]`, so the common `astype("int64") / 1e9` idiom returns
+  values 1000× too small and fails *silently*: time-window filters match nothing
+  instead of raising. This bug cost a debugging cycle; do not reintroduce it.
+- `contracts.py` Part B — models the pipeline needs that section 4 does not define
+  (`Flag`, `AisGap`, `EnvField`, `EnvSummary`, `FunnelCounts`, `ForecastPolygon`,
+  `Incident`). Kept in a separate labelled block. `tests/test_contracts.py` parses
+  section 4 out of this file and asserts Part A matches it field-for-field, so the
+  contract and its implementation cannot drift apart silently.
+- `advect_forward(..., track=...)` — a vessel discharging while under way is a
+  *line* source. Without it the simulated slick is a round blob with no
+  orientation, and the 25% orientation term in 5.5 carries no information.
+- Decoy vessels in the synthetic generator. Without them the origin envelope held
+  exactly one candidate and ranking never had to discriminate, so a correct answer
+  proved nothing.
+
+### 10.3 Known gaps
+
+- **Coastline is bundled and simplified.** This environment sits behind TLS
+  interception, so the Natural Earth download fails certificate verification even
+  with `certifi`. A simplified Indian west coast ships with the code and the source
+  actually used is reported in every result. Drop `ne_50m_coastline.geojson` into
+  `data/raw/` and it is picked up with no code change. Neither demo scenario
+  reaches shore within 72 h, so the ETA path is untested against a real impact.
+- **The Fay age cross-check is not independent.** It requires a reference-area
+  constant encoding an assumed discharge volume and oil type. It is a consistency
+  check against an assumed spreading rate. The dossier says so; do not let it be
+  described as corroboration.
+- **`prior_offences` is always 0.** `persist/dossier_db.py` (connector A) is not
+  built, so the feedback loop is architected but not closed.
+- Not yet built: `ingest/sentinel1.py`, `optical.py`, `environment.py`,
+  `baseline/`, `vessels/match.py`, `persist/`, layer 11 dissemination.

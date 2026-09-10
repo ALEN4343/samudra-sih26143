@@ -41,10 +41,10 @@ bash scripts/run_demo.sh demo-002 --regen --seed 77341 --vessels 80 --decoys 9 -
 [5/6] evidence dossier           artifacts/demo-001/dossier_demo-001.pdf
 [6/6] chain of custody           INTACT
 
-#  MMSI        NAME                  POST  SCORE   IoU  dORI   AGE  TRUST  BEHAV  CLASS
-1  461279535   PACIFIC PIONEER      0.998  0.896 0.798   0.6   8.5   1.00   1.00  MATCHED
-2  412848373   GOLDEN ENDEAVOUR     0.002  0.576 0.240   1.0  12.2   1.00   1.00  MATCHED
-3  371494057   CRIMSON ENDEAVOUR    0.000  0.283 0.122  86.3  10.5   0.90   1.35  MATCHED
+#  MMSI        NAME                  POST  SCORE   IoU  dORI   AGE  TRUST  BEHAV   TYPE  CLASS
+1  461279535   PACIFIC PIONEER      0.715  0.898 0.798   0.6   8.5   1.00   1.00   1.25  MATCHED
+2  412848373   GOLDEN ENDEAVOUR     0.199  0.578 0.240   1.0  12.2   1.00   1.00   1.25  MATCHED
+3  371494057   CRIMSON ENDEAVOUR    0.085  0.289 0.122  86.3  10.5   0.90   1.35   1.40  MATCHED
 ```
 
 Against planted ground truth, across both scenarios:
@@ -67,15 +67,22 @@ like, sampled every 30 minutes across the plausible window. The simulated slick 
 scored against the observed one:
 
 ```
-score = 0.40 * IoU
-      + 0.25 * centroid proximity
-      + 0.25 * orientation agreement
-      + 0.10 * area ratio
+geometric_score = 0.40 * IoU
+                + 0.25 * exp(-centroid_offset_km / 10)
+                + 0.25 * cos(orientation_delta)
+                + 0.10 * area_ratio
+
+likelihood = softmax(geometric_score)          # across candidates
+posterior  = likelihood * trust * behaviour * type_risk
+           * (1.8 if the vessel went dark over the release window)
+           * (1 + 0.4 * prior offences)        # renormalised
 ```
 
 Weights live in `config/weights.yaml` and are **never** tuned to make a scenario produce
-the expected answer. Posteriors are a softmax over score multiplied by trust, behaviour
-and proximity priors.
+the expected answer. The one calibration constant that was changed — the softmax
+temperature — is documented with its evidence in CLAUDE.md section 10.1: at the default
+of 1.0, a candidate whose slick was 86 degrees misaligned ranked second on its priors
+alone, which inverts the claim that geometry decides.
 
 A vessel discharging while under way is a *line* source, which is why a real slick is
 elongated along the ship's course. That is what makes the orientation term carry real
@@ -93,7 +100,7 @@ writes them to `ground_truth.json`. **No pipeline module may read that file** �
 enforces it structurally by scanning the source for reads.
 
 ```bash
-.venv/Scripts/python -m pytest -q      # 58 tests
+.venv/Scripts/python -m pytest -q      # 62 tests
 ```
 
 The tests that matter:
@@ -123,6 +130,9 @@ Two honest caveats worth stating out loud rather than burying:
 - **The Fay age cross-check is not independent.** It needs a reference-area constant
   encoding an assumed discharge volume and oil type. It is a consistency check against
   an assumed spreading rate, and the dossier says so.
+- **`prior_offences` is always zero.** The feedback loop that would populate it
+  (`persist/dossier_db.py`, connector A) is architected but not built, so the system does
+  not yet compound across incidents.
 - **The bundled coastline is simplified.** This build environment sits behind TLS
   interception, so the Natural Earth download fails certificate verification. A
   simplified Indian west coast ships with the code and the source actually used is
