@@ -17,6 +17,11 @@ import numpy as np
 from samudra.attribution.prune import Track
 from samudra.geo import Projector
 
+# A vessel is "under way" above this speed. Below it, and for less than
+# MIN_UNDERWAY_FRACTION of its reports, it is berthed or at anchor.
+UNDERWAY_KN = 3.0
+MIN_UNDERWAY_FRACTION = 0.05
+
 
 def _flag(code: str, severity: str, detail: str, at=None, lat=None, lon=None) -> dict:
     return {
@@ -39,6 +44,15 @@ def behaviour_flags(proj: Projector, tr: Track, cfg: dict) -> list[dict]:
     if len(tr.t) < 12:
         return out
 
+    # A vessel that never gets under way is MOORED, not loitering, and moored is
+    # the normal state in a port. On the Houston feed the naive test flagged 444
+    # of 560 vessels, which makes the behaviour prior worse than useless: it
+    # promoted every berthed ship into the suspect list. Loitering is only
+    # meaningful as an interruption to a passage.
+    underway = tr.sog > UNDERWAY_KN
+    if underway.mean() < MIN_UNDERWAY_FRACTION:
+        return out
+
     x, y = proj.to_m(tr.lon, tr.lat)
 
     # Loitering: low speed with small net displacement over a window.
@@ -54,7 +68,11 @@ def behaviour_flags(proj: Projector, tr: Track, cfg: dict) -> list[dict]:
         net_km = math.hypot(x[j] - x[i], y[j] - y[i]) / 1000.0
         mean_sog = float(np.mean(tr.sog[i:j])) if j > i else 99.0
         span_h = (tr.t[j] - tr.t[i]) / 3600.0
-        if mean_sog < 2.0 and net_km < 3.0:
+        # Require the stop to be bracketed by movement, so it is a pause in a
+        # transit rather than the beginning or end of a berth period.
+        moved_before = underway[:i].any()
+        moved_after = underway[j:].any()
+        if mean_sog < 2.0 and net_km < 3.0 and moved_before and moved_after:
             if best is None or span_h > best[0]:
                 best = (span_h, mean_sog, net_km, i)
         i = j if j > i else i + 1

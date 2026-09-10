@@ -632,20 +632,33 @@ def render_scene(
     # Two dark look-alikes that are NOT oil — low-wind patches. These are the
     # false positives detection has to reject.
     lookalikes = []
+    # Size and place the look-alikes relative to the AOI and to the slick itself.
+    # Fixed degree margins assume a 5-degree box and invert on a small AOI like
+    # the Houston Ship Channel, which is 0.5 x 0.4 degrees.
+    aoi_w, aoi_h = b[2] - b[0], b[3] - b[1]
+    margin_x, margin_y = aoi_w * 0.15, aoi_h * 0.15
+    slick_w = slick.bounds[2] - slick.bounds[0]
+    slick_h = slick.bounds[3] - slick.bounds[1]
+    base_r = max(max(slick_w, slick_h) * 0.45, min(aoi_w, aoi_h) * 0.02)
+    clear = max(max(slick_w, slick_h) * 0.8, min(aoi_w, aoi_h) * 0.04)
+
     for _ in range(2):
+        lo = float(rng.uniform(b[0] + margin_x, b[2] - margin_x))
+        la = float(rng.uniform(b[1] + margin_y, b[3] - margin_y))
         for _try in range(40):
-            lo = float(rng.uniform(b[0] + 0.20, b[2] - 0.20))
-            la = float(rng.uniform(b[1] + 0.20, b[3] - 0.20))
-            if not slick.buffer(0.10).contains(Point(lo, la)):
+            if not slick.buffer(clear).contains(Point(lo, la)):
                 break
-        rx, ry = float(rng.uniform(0.03, 0.07)), float(rng.uniform(0.02, 0.05))
+            lo = float(rng.uniform(b[0] + margin_x, b[2] - margin_x))
+            la = float(rng.uniform(b[1] + margin_y, b[3] - margin_y))
+        rx = base_r * float(rng.uniform(0.7, 1.5))
+        ry = base_r * float(rng.uniform(0.4, 0.9))
         ang = float(rng.uniform(0, math.pi))
         th = np.linspace(0, 2 * math.pi, 40)
         ex = rx * np.cos(th) * math.cos(ang) - ry * np.sin(th) * math.sin(ang)
         ey = rx * np.cos(th) * math.sin(ang) + ry * np.sin(th) * math.cos(ang)
-        p = Polygon(np.column_stack([lo + ex, la + ey]))
-        burn(p, LOOKALIKE_SIGMA0_DB, feather_px=6)
-        lookalikes.append(mapping(p))
+        pgon = Polygon(np.column_stack([lo + ex, la + ey]))
+        burn(pgon, LOOKALIKE_SIGMA0_DB, feather_px=6)
+        lookalikes.append(mapping(pgon))
 
     # Multiplicative speckle: single-look intensity is exponentially distributed.
     img *= rng.gamma(shape=3.0, scale=1 / 3.0, size=(h, w)).astype(np.float32)

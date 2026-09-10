@@ -89,10 +89,15 @@ class Candidate:
     track: Track
     hit_times: list[float]  # epoch seconds of the reverse steps it matched
     hit_hours_back: list[float]
+    hit_sog: list[float] = field(default_factory=list)  # SOG at each hit
 
     @property
     def window(self) -> tuple[float, float]:
         return min(self.hit_times), max(self.hit_times)
+
+    def underway_hits(self, min_kn: float) -> int:
+        """Envelope intersections where the vessel was actually making way."""
+        return sum(1 for v in self.hit_sog if v >= min_kn)
 
 
 def prune(
@@ -100,6 +105,7 @@ def prune(
     steps: list[dict],
     aoi_bounds: tuple[float, float, float, float] | None = None,
     search_window: tuple[float, float] | None = None,
+    min_underway_kn: float = 1.0,
 ) -> tuple[list[Candidate], dict]:
     """Keep vessels intersecting the reverse-advected envelope in space and time.
 
@@ -159,11 +165,33 @@ def prune(
                 c = hits[tr.mmsi] = Candidate(tr.mmsi, tr, [], [])
             c.hit_times.append(matched_at)
             c.hit_hours_back.append(s["hours_back"])
+            c.hit_sog.append(float(np.interp(matched_at, tr.t, tr.sog)))
 
-    candidates = sorted(hits.values(), key=lambda c: -len(c.hit_times))
+    # Order candidates by how often they were inside the envelope WHILE UNDER WAY,
+    # not by raw intersection count.
+    #
+    # Raw count is actively backwards on real data. A moored vessel sits inside
+    # the envelope at every single time step and scores the maximum; a vessel
+    # transiting through passes in one or two. On the Houston feed that put all
+    # twelve top candidates at 0.00 kn median speed and pushed the real culprit
+    # to 37th, where truncation dropped it before it was ever scored.
+    #
+    # Being under way is also the physically meaningful criterion: MARPOL Annex I
+    # regulations 15 and 34 both condition any lawful discharge on the ship
+    # "proceeding en route", and only a moving vessel lays the elongated,
+    # course-aligned slick the orientation term is built to recognise. Stationary
+    # vessels are still kept and still scored - they simply lose priority, so a
+    # genuine culprit that stopped is never silently discarded.
+    candidates = sorted(
+        hits.values(),
+        key=lambda c: (-c.underway_hits(min_underway_kn), -len(c.hit_times)),
+    )
+    underway = sum(1 for c in candidates if c.underway_hits(min_underway_kn) > 0)
+
     funnel = {
         "total_in_scene": in_scene,
         "in_envelope": len(candidates),
+        "in_envelope_underway": underway,
         "scored": 0,
         "ranked": 0,
         "in_scene_mmsis": in_scene_mmsis,

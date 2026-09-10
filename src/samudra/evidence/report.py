@@ -545,12 +545,19 @@ def build(incident_id: str, root: Path = Path("artifacts")) -> Path:
         if props.get("coastline_intersects"):
             eta = (props.get("coastline_eta") or "")[:16]
             contact = f"{props['affected_shoreline_km']:.1f} km, ETA {eta}"
+        elif not props.get("coastline_covers_aoi", True):
+            contact = "not assessed - no coastline data for this AOI"
+
+        # None when the loaded coastline does not cover this AOI at all.
+        dist = props.get("distance_to_coast_km")
+        dist_s = "n/a" if dist is None else f"{dist:.0f} km"
+
         frows.append(
             [
                 f"+{h} h",
                 f"{props['area_km2']:.1f} km2",
                 f"{cone['area_km2']:.1f} km2",
-                f"{props.get('distance_to_coast_km', 0):.0f} km",
+                dist_s,
                 contact,
             ]
         )

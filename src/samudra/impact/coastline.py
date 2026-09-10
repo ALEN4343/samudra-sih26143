@@ -21,6 +21,9 @@ from shapely.ops import unary_union
 
 from samudra.geo import Projector
 
+# Beyond this range the loaded coastline is simply not the coast this AOI sits on.
+COVERAGE_LIMIT_KM = 800.0
+
 COASTLINE_PATHS = (
     Path("data/raw/ne_50m_coastline.geojson"),
     Path("data/raw/ne_10m_coastline.geojson"),
@@ -79,6 +82,25 @@ def coastline_impacts(
 
     coast_m = _to_m(proj, geom)
 
+    # Guard against reporting a distance to a coastline on the wrong ocean. The
+    # bundled fallback covers the Indian west coast only; run an AOI elsewhere
+    # (Houston, say) and the honest answer is "no coastline data", not "no shore
+    # contact, closest approach 15,000 km", which looks like a result and is not.
+    ref = proj.polygon_to_m(forecasts[0]["geometry"])
+    if ref.distance(coast_m) > COVERAGE_LIMIT_KM * 1000.0:
+        return [
+            {
+                "horizon_hours": f["horizon_hours"],
+                "coastline_intersects": False,
+                "affected_shoreline_km": 0.0,
+                "distance_to_coast_km": None,
+                "coastline_source": f"{coast['source']} - DOES NOT COVER THIS AOI",
+                "coastline_covers_aoi": False,
+                "coastline_eta": None,
+            }
+            for f in forecasts
+        ]
+
     rows = []
     for f in forecasts:
         poly_m = proj.polygon_to_m(f["geometry"])
@@ -91,6 +113,7 @@ def coastline_impacts(
                 "affected_shoreline_km": (seg.length / 1000.0) if hits else 0.0,
                 "distance_to_coast_km": 0.0 if hits else poly_m.distance(coast_m) / 1000.0,
                 "coastline_source": coast["source"],
+                "coastline_covers_aoi": True,
                 "coastline_eta": None,
             }
         )

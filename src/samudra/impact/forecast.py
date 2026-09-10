@@ -159,7 +159,8 @@ def main() -> None:
             )
         )
         print(f"{f['horizon_hours']:>6}h{f['area_km2']:>11.1f}{f['cone_area_km2']:>11.1f}"
-              f"{f['particle_spread_km']:>11.1f}{imp['distance_to_coast_km']:>13.1f}")
+              f"{f['particle_spread_km']:>11.1f}"
+              f"{'n/a' if imp['distance_to_coast_km'] is None else format(imp['distance_to_coast_km'], '.1f'):>13}")
 
     hit = next((i for i in impacts if i["coastline_intersects"]), None)
     print()
@@ -167,6 +168,8 @@ def main() -> None:
         print(f"COASTLINE IMPACT: shore contact by +{hit['horizon_hours']}h, "
               f"{hit['affected_shoreline_km']:.1f} km affected")
         print(f"ETA {hit['coastline_eta']}")
+    elif impacts and not impacts[0].get("coastline_covers_aoi", True):
+        print(f"COASTLINE IMPACT: not assessed - {impacts[0]['coastline_source']}")
     else:
         closest = min(impacts, key=lambda i: i["distance_to_coast_km"])
         print(f"COASTLINE IMPACT: none within 72 h; closest approach "

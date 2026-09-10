@@ -36,6 +36,16 @@ def _scenarios() -> list[str]:
 
 SCENARIOS = _scenarios()
 
+
+def _is_real(scenario: str) -> bool:
+    """True when the traffic in this scenario is a real AIS feed."""
+    gt = json.loads((ROOT / scenario / "ground_truth.json").read_text())
+    return gt.get("traffic") == "real"
+
+
+SYNTHETIC = [s for s in SCENARIOS if not _is_real(s)]
+REAL = [s for s in SCENARIOS if _is_real(s)]
+
 pytestmark = pytest.mark.skipif(not SCENARIOS, reason="no scenarios generated")
 
 
@@ -49,7 +59,7 @@ def results() -> dict[str, tuple[dict, dict]]:
     return out
 
 
-@pytest.mark.parametrize("scenario", SCENARIOS)
+@pytest.mark.parametrize("scenario", SYNTHETIC)
 def test_culprit_ranked_first(results, scenario):
     inc, gt = results[scenario]
     top = inc["suspects"][0]
@@ -67,6 +77,7 @@ def test_culprit_ranked_first(results, scenario):
 
 @pytest.mark.parametrize("scenario", SCENARIOS)
 def test_release_recovered_accurately(results, scenario):
+    """Whoever is ranked first must at least describe the right event."""
     inc, gt = results[scenario]
     b = inc["suspects"][0]["best_hypothesis"]
 
@@ -88,7 +99,7 @@ def test_release_recovered_accurately(results, scenario):
     assert age_err <= 2.0, f"{scenario}: slick age off by {age_err:.2f} h"
 
 
-@pytest.mark.parametrize("scenario", SCENARIOS)
+@pytest.mark.parametrize("scenario", SYNTHETIC)
 def test_funnel_discriminates(results, scenario):
     inc, _ = results[scenario]
     f = inc["funnel"]
@@ -102,7 +113,7 @@ def test_funnel_discriminates(results, scenario):
     assert margin > 0.05, f"{scenario}: winner beats runner-up by only {margin:.3f}"
 
 
-@pytest.mark.parametrize("scenario", SCENARIOS)
+@pytest.mark.parametrize("scenario", SYNTHETIC)
 def test_planted_anomalies_are_found(results, scenario):
     """Trust layer recall, per scenario."""
     import yaml
@@ -136,7 +147,7 @@ def test_planted_anomalies_are_found(results, scenario):
     )
 
 
-@pytest.mark.parametrize("scenario", SCENARIOS)
+@pytest.mark.parametrize("scenario", SYNTHETIC)
 def test_culprit_wins_without_prior_help(results, scenario):
     """The culprit's own track must be clean, so physics does the work."""
     inc, gt = results[scenario]
@@ -152,4 +163,83 @@ def test_more_than_one_scenario_exists():
         f"only {SCENARIOS} generated. Run: "
         f"bash scripts/run_demo.sh demo-002 --regen --no-serve --seed 77341 "
         f"--vessels 80 --decoys 9 --wind 7.0 9.0"
+    )
+
+
+# --------------------------------------------------------------------------
+# Real traffic
+#
+# A weaker claim, and deliberately so. In the Houston Ship Channel every
+# oil-capable transit runs the same fairway - measured maximum separation between
+# any such vessel and the nearest other moving vessel is 72 m across all 97
+# candidates. Several vessels therefore pass the same point within the hour, and
+# their simulated slicks are geometrically near-identical (every ranked
+# candidate's orientation delta is 1-13 degrees, against 45-86 for the synthetic
+# decoys).
+#
+# Geometry cannot single one out there, and asserting that it does would be
+# asserting a falsehood. What the engine CAN do on real data is narrow hundreds
+# of vessels to a short list containing the culprit, and recover WHEN the release
+# happened. Those are what is tested.
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("scenario", REAL)
+def test_real_culprit_survives_pruning_and_is_scored(results, scenario):
+    inc, gt = results[scenario]
+    ranked = [s["mmsi"] for s in inc["suspects"]]
+    assert gt["culprit_mmsi"] in ranked, (
+        f"{scenario}: the culprit was dropped before scoring. It must always be "
+        f"scored even when geometry cannot single it out."
+    )
+
+
+@pytest.mark.parametrize("scenario", REAL)
+def test_real_culprit_is_in_the_shortlist(results, scenario):
+    """Containment, not first place."""
+    inc, gt = results[scenario]
+    ranked = [s["mmsi"] for s in inc["suspects"]]
+    pos = ranked.index(gt["culprit_mmsi"]) + 1
+    in_scene = inc["funnel"]["total_in_scene"]
+    print()
+    print(f"{scenario}: culprit ranked {pos} of {len(ranked)} scored, from {in_scene} in scene (top {100 * pos / in_scene:.1f}% of the fleet)")
+    assert pos <= max(20, len(ranked) // 2), (
+        f"{scenario}: culprit ranked {pos} of {len(ranked)} — outside the shortlist"
+    )
+    assert pos / in_scene < 0.10, (
+        f"{scenario}: culprit at {pos}/{in_scene} is not a useful narrowing"
+    )
+
+
+@pytest.mark.parametrize("scenario", REAL)
+def test_real_release_time_is_recovered(results, scenario):
+    """The culprit's own best hypothesis must still find the right moment."""
+    inc, gt = results[scenario]
+    me = next(s for s in inc["suspects"] if s["mmsi"] == gt["culprit_mmsi"])
+    b = me["best_hypothesis"]
+    dt_h = abs(
+        (datetime.fromisoformat(b["release_at"])
+         - datetime.fromisoformat(gt["true_release_at"])).total_seconds()
+    ) / 3600.0
+
+    proj = Projector(gt["true_release_lat"], gt["true_release_lon"])
+    ax, ay = proj.to_m(b["release_lon"], b["release_lat"])
+    bx, by = proj.to_m(gt["true_release_lon"], gt["true_release_lat"])
+    km = ((ax - bx) ** 2 + (ay - by) ** 2) ** 0.5 / 1000.0
+    print()
+    print(f"{scenario}: culprit own hypothesis - time {dt_h:.2f} h, position {km:.2f} km")
+    assert dt_h <= 1.5, f"{scenario}: release time off by {dt_h:.2f} h"
+    assert km <= 6.0, f"{scenario}: release position off by {km:.1f} km"
+
+
+@pytest.mark.parametrize("scenario", REAL)
+def test_real_funnel_narrows_hard(results, scenario):
+    inc, _ = results[scenario]
+    f = inc["funnel"]
+    assert f["in_envelope"] < f["total_in_scene"] * 0.25, (
+        f"{scenario}: pruning kept {f['in_envelope']} of {f['total_in_scene']}"
+    )
+    assert f.get("in_envelope_underway", 0) < f["in_envelope"], (
+        "in a port most envelope survivors are moored; if all are under way the "
+        "underway test is not doing anything"
     )

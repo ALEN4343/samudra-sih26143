@@ -3,6 +3,8 @@
 #
 #   scripts/run_demo.sh [scenario-id] [options]
 #
+#   --real-ais     build the incident over the real Houston AIS feed instead of
+#                  synthetic traffic (see src/samudra/synth/real_incident.py)
 #   --regen        regenerate the scenario even if artifacts already exist
 #   --no-serve     run the pipeline but do not start the API server
 #   --port N       serve on N (default 8000)
@@ -15,6 +17,8 @@ SCENARIO="${1:-demo-001}"
 [[ "${SCENARIO}" == --* ]] && SCENARIO="demo-001" || { [[ $# -gt 0 ]] && shift || true; }
 
 REGEN=0
+REAL_AIS=0
+HOURS_BACK=""
 SERVE=1
 PORT=8000
 VESSELS=40
@@ -26,6 +30,8 @@ WIND_MAX=9.0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --regen)    REGEN=1; shift ;;
+    --real-ais) REAL_AIS=1; shift ;;
+    --hours-back) HOURS_BACK="$2"; shift 2 ;;
     --no-serve) SERVE=0; shift ;;
     --port)     PORT="$2"; shift 2 ;;
     --vessels)  VESSELS="$2"; shift 2 ;;
@@ -60,20 +66,34 @@ echo "=============================================================="
 
 # ---- 1. scenario ----------------------------------------------------------
 if [[ $REGEN -eq 1 || ! -f "${ART}/ground_truth.json" ]]; then
-  ARGS=(--scenario "${SCENARIO}" --vessels "${VESSELS}" --decoys "${DECOYS}"
-        --wind-min "${WIND_MIN}" --wind-max "${WIND_MAX}")
-  [[ -n "${SEED}" ]] && ARGS+=(--seed "${SEED}")
   rm -rf "${ART}"
-  OUT=$("$PY" -m samudra.synth.generate "${ARGS[@]}")
-  TRACKS=$(sed -n 's/^tracks generated *: *//p' <<<"$OUT" | head -1)
-  AREA=$(sed -n 's/^slick area *: *//p' <<<"$OUT" | head -1)
-  say "generate scenario" "${TRACKS} tracks, slick ${AREA}"
+  if [[ $REAL_AIS -eq 1 ]]; then
+    # Real traffic: the AIS is a genuine NOAA feed, only the release and the
+    # environment field are fabricated.
+    ARGS=(--incident "${SCENARIO}")
+    [[ -n "${SEED}" ]] && ARGS+=(--seed "${SEED}")
+    OUT=$("$PY" -m samudra.synth.real_incident "${ARGS[@]}")
+    VES=$(sed -n 's/^vessels in feed *: *//p' <<<"$OUT" | head -1)
+    CUL=$(sed -n 's/^culprit MMSI *: *//p' <<<"$OUT" | head -1)
+    say "real AIS incident" "${VES} real vessels; culprit ${CUL}"
+    [[ -z "${HOURS_BACK}" ]] && HOURS_BACK=10
+  else
+    ARGS=(--scenario "${SCENARIO}" --vessels "${VESSELS}" --decoys "${DECOYS}"
+          --wind-min "${WIND_MIN}" --wind-max "${WIND_MAX}")
+    [[ -n "${SEED}" ]] && ARGS+=(--seed "${SEED}")
+    OUT=$("$PY" -m samudra.synth.generate "${ARGS[@]}")
+    TRACKS=$(sed -n 's/^tracks generated *: *//p' <<<"$OUT" | head -1)
+    AREA=$(sed -n 's/^slick area *: *//p' <<<"$OUT" | head -1)
+    say "generate scenario" "${TRACKS} tracks, slick ${AREA}"
+  fi
 else
   say "generate scenario" "reusing existing ${ART} (--regen to rebuild)"
 fi
 
 # ---- 2. attribution -------------------------------------------------------
-OUT=$("$PY" -m samudra.attribution --incident "${SCENARIO}")
+ATTR=(--incident "${SCENARIO}")
+[[ -n "${HOURS_BACK}" ]] && ATTR+=(--hours-back "${HOURS_BACK}")
+OUT=$("$PY" -m samudra.attribution "${ATTR[@]}")
 FUNNEL=$(sed -n 's/^FUNNEL *//p' <<<"$OUT" | head -1)
 say "attribute" "${FUNNEL}"
 
