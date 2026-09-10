@@ -64,6 +64,14 @@
   select{background:#21262d;color:var(--txt);border:1px solid var(--line);border-radius:5px;
     padding:6px 9px;font:inherit;font-size:12px}
   #err{color:#ff7b72;font-size:12px;padding:10px 16px}
+  .seg{display:flex;gap:0;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+  .seg button{border:0;border-radius:0;flex:1;padding:6px 4px;font-size:11.5px;
+    background:#1c2128;color:var(--dim)}
+  .seg button.on{background:var(--suspect);color:#fff}
+  .seg button+button{border-left:1px solid var(--line)}
+  .eta{margin-top:8px;padding:8px 10px;border-radius:4px;font-size:11.5px;
+    background:#20191a;border:1px solid var(--suspect)}
+  .eta.safe{background:#12251a;border-color:var(--ok)}
   .note{font-size:10.5px;color:var(--dim);margin-top:6px;line-height:1.45}
   .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#161b22;color:var(--txt)}
 </style>
@@ -91,6 +99,16 @@
         <dl class="kv" id="cond"></dl>
       </section>
       <section>
+        <h2>Forecast horizon</h2>
+        <div class="seg" id="seg">
+          <button data-h="0" class="on">Observed</button>
+          <button data-h="24">+24 h</button>
+          <button data-h="48">+48 h</button>
+          <button data-h="72">+72 h</button>
+        </div>
+        <div id="fcinfo"></div>
+      </section>
+      <section>
         <h2>Ranked suspects</h2>
         <div id="cards"></div>
       </section>
@@ -102,6 +120,8 @@
           <span><i style="background:var(--suspect)"></i>ranked suspect</span>
           <span><i style="background:var(--cand)"></i>in envelope</span>
           <span><i style="background:var(--filt)"></i>filtered out</span>
+          <span><i style="background:#7ee787"></i>forecast</span>
+          <span><i style="background:#3fb95055"></i>uncertainty cone</span>
         </div>
       </section>
     </div>
@@ -120,6 +140,7 @@ const L_env=L.layerGroup().addTo(map);
 const L_slick=L.layerGroup().addTo(map);
 const L_sim=L.layerGroup().addTo(map);
 const L_play=L.layerGroup().addTo(map);
+const L_fc=L.layerGroup().addTo(map);
 
 let INC=null, TRACKS=null, SEL=null, REPLAY=null, timer=null;
 
@@ -144,7 +165,7 @@ async function boot(){
 
 async function load(id){
   stop(); $('#err').textContent='';
-  [L_tracks,L_env,L_slick,L_sim,L_play].forEach(l=>l.clearLayers());
+  [L_tracks,L_env,L_slick,L_sim,L_play,L_fc].forEach(l=>l.clearLayers());
   SEL=null; REPLAY=null;
   try{
     INC=await jget(`/api/incident/${id}`);
@@ -156,11 +177,12 @@ async function load(id){
   $('#synth').style.color=INC.synthetic?'#d29922':'var(--ok)';
 
   drawEnvelope(); drawSlick(); drawTracks(); renderFunnel(); renderCond(); renderCards();
+  initForecast();
 
   // Frame the origin envelope, not just the slick: the envelope is the search
   // area, and framing it shows the traffic the funnel had to sift through.
   const b=L.geoJSON(INC.origin_envelope).getBounds();
-  map.fitBounds(b.pad(0.35));
+  fitWhenSized(b.pad(0.35));
 }
 
 function drawEnvelope(){
@@ -290,6 +312,83 @@ function stop(){
   L_play.clearLayers();
   if(INC) $('#hdr').textContent=
     `acquisition ${INC.acquisition_at.replace('T',' ').replace('+00:00',' UTC')}`;
+}
+
+/* Leaflet computes zoom from the container's pixel size. If the pane is still
+   laying out (or was hidden) the container is 0x0 and fitBounds silently lands
+   on zoom 0 — a whole-world view with the correct centre. Wait for a real size,
+   then invalidate and fit. */
+function fitWhenSized(bounds, tries){
+  tries = tries || 0;
+  const el = map.getContainer();
+  if((el.clientWidth < 50 || el.clientHeight < 50) && tries < 40){
+    return setTimeout(()=>fitWhenSized(bounds, tries+1), 60);
+  }
+  map.invalidateSize();
+  map.fitBounds(bounds, {maxZoom: 12});
+}
+window.addEventListener('resize', ()=>map.invalidateSize());
+
+/* ---- forecast horizon ---- */
+function initForecast(){
+  const fc=INC.forecasts||{};
+  document.querySelectorAll('#seg button').forEach(b=>{
+    const h=Number(b.dataset.h);
+    const have = h===0 || fc['forecast_'+h+'h'];
+    b.disabled=!have;
+    b.classList.toggle('on',h===0);
+    b.onclick=()=>showHorizon(h);
+  });
+  showHorizon(0);
+}
+
+function showHorizon(h){
+  document.querySelectorAll('#seg button').forEach(b=>
+    b.classList.toggle('on',Number(b.dataset.h)===h));
+  L_fc.clearLayers();
+
+  if(h===0){
+    $('#fcinfo').innerHTML=`<div class="note">Observed slick at acquisition &mdash;
+      ${fmt(INC.observed_slick.area_km2,1)} km&sup2;.</div>`;
+    fitWhenSized(L.geoJSON(INC.origin_envelope).getBounds().pad(0.35));
+    return;
+  }
+  const fc=(INC.forecasts||{})['forecast_'+h+'h'];
+  if(!fc){ $('#fcinfo').innerHTML='<div class="note">Not computed. Run: python -m samudra.impact.forecast</div>'; return; }
+
+  const poly=fc.features.find(f=>f.properties.kind==='forecast');
+  const cone=fc.features.find(f=>f.properties.kind==='uncertainty_cone');
+
+  if(cone) L.geoJSON(cone,{style:{color:'#3fb950',weight:1,opacity:.55,dashArray:'3,4',
+    fillColor:'#3fb950',fillOpacity:.07}}).bindPopup('Uncertainty cone from particle spread').addTo(L_fc);
+  if(poly) L.geoJSON(poly,{style:{color:'#7ee787',weight:2,
+    fillColor:'#7ee787',fillOpacity:.30}}).bindPopup(`Forecast +${h} h`).addTo(L_fc);
+
+  const pr=poly?poly.properties:{};
+  const grow=(pr.area_km2/INC.observed_slick.area_km2);
+  let html=`<dl class="kv">
+    <dt>Valid at</dt><dd>${(pr.valid_at||'').replace('T',' ').replace('+00:00','')}</dd>
+    <dt>Area</dt><dd>${fmt(pr.area_km2,1)} km² (${fmt(grow,1)}× observed)</dd>
+    <dt>Cone area</dt><dd>${fmt(cone?cone.properties.area_km2:null,1)} km²</dd>
+    <dt>Distance to shore</dt><dd>${fmt(pr.distance_to_coast_km,1)} km</dd>
+  </dl>`;
+  if(pr.coastline_intersects){
+    html+=`<div class="eta"><b>Shore contact forecast.</b><br>
+      ${fmt(pr.affected_shoreline_km,1)} km of shoreline affected.<br>
+      ETA ${(pr.coastline_eta||'').replace('T',' ').replace('+00:00','')} UTC</div>`;
+  }else{
+    html+=`<div class="eta safe">No shore contact by +${h} h.
+      Closest approach ${fmt(pr.distance_to_coast_km,1)} km.</div>`;
+  }
+  if(pr.coastline_source) html+=`<div class="note">Coastline: ${pr.coastline_source}</div>`;
+  $('#fcinfo').innerHTML=html;
+
+  // Over 72 h the slick drifts well clear of where it was photographed, so the
+  // forecast lands off-screen unless the view follows it. Frame the observed
+  // slick and the forecast together to keep the displacement legible.
+  const bb=L.geoJSON(INC.observed_slick.geometry).getBounds();
+  if(cone) bb.extend(L.geoJSON(cone).getBounds());
+  fitWhenSized(bb.pad(0.12));
 }
 
 boot();
