@@ -83,10 +83,16 @@ def trust_flags(proj: Projector, tr: Track, cfg: dict, all_tracks=None) -> list[
     # really was moving faster for most of that interval.
     reported_kn = (tr.sog[:-1] + tr.sog[1:]) / 2.0
 
-    # A single disagreeing segment is manoeuvre or noise. Spoofing shows up as a
-    # run: the position jumps away and back, so it disagrees at both ends.
+    # Exclude segments spanning a real manoeuvre. Across a sharp acceleration or
+    # deceleration the vessel's speed is not linear within the interval, so even
+    # the endpoint mean understates how far it actually travelled. A loiter has
+    # exactly two such transitions (entry and exit), which is indistinguishable
+    # from a spoof's jump-out-and-back on segment count alone. Spoofing is
+    # detectable because the position moves while the reported speed stays flat.
+    steady = np.abs(tr.sog[1:] - tr.sog[:-1]) <= t.get("manoeuvre_sog_delta_kn", 3.0)
+
     disagree = np.abs(derived_kn - reported_kn)
-    bad = np.flatnonzero(disagree > t["sog_disagreement_kn"])
+    bad = np.flatnonzero((disagree > t["sog_disagreement_kn"]) & steady)
     if len(bad) >= 2:
         i = int(bad[np.argmax(disagree[bad])])
         out.append(

@@ -465,6 +465,18 @@ def inject_anomalies(rng, proj, vessels: list[Vessel], protect_mmsi: int) -> dic
         out, pool[:] = pool[:n], pool[n:]
         return out
 
+    def rows_for(v, hours):
+        """Row count spanning `hours` at this vessel's own reporting interval.
+
+        Behaviours must be planted as durations. Reporting intervals range from
+        1 to 5 minutes, so a fixed row count produces anything from 40 minutes
+        to 4 hours of loitering, and whether the detector sees it becomes luck.
+        """
+        if len(v.rows) < 3:
+            return 0
+        iv = float(np.median(np.diff([r["t"] for r in v.rows])))
+        return int(hours * 3600.0 / max(iv, 1.0))
+
     # AIS gaps: the vessel keeps moving while silent, so simply dropping the
     # reports is already coherent.
     for v in take(3):
@@ -487,8 +499,8 @@ def inject_anomalies(rng, proj, vessels: list[Vessel], protect_mmsi: int) -> dic
     # Loiter: circle in place at low speed, then resume from where it stopped.
     for v in take(2):
         n = len(v.rows)
-        i0 = int(rng.integers(n // 4, n * 2 // 3))
-        span = min(int(rng.integers(40, 80)), n - i0 - 1)
+        i0 = int(rng.integers(n // 5, max(n // 2, n // 5 + 1)))
+        span = min(rows_for(v, float(rng.uniform(2.0, 4.0))), n - i0 - 1)
         if span < 10:
             continue
         base_lat, base_lon = v.rows[i0]["lat"], v.rows[i0]["lon"]
@@ -523,8 +535,8 @@ def inject_anomalies(rng, proj, vessels: list[Vessel], protect_mmsi: int) -> dic
     # rather than as the manoeuvre we intend to plant.
     for v in take(1):
         n = len(v.rows)
-        i0 = int(rng.integers(n // 3, n * 2 // 3))
-        span = min(50, n - i0 - 1)
+        i0 = int(rng.integers(n // 4, max(n // 2, n // 4 + 1)))
+        span = min(rows_for(v, float(rng.uniform(1.5, 3.0))), n - i0 - 1)
         if span < 10:
             continue
         slow_kn = float(max(rng.normal(3.0, 0.4), 1.5))

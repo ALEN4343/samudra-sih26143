@@ -42,7 +42,9 @@ def behaviour_flags(proj: Projector, tr: Track, cfg: dict) -> list[dict]:
     x, y = proj.to_m(tr.lon, tr.lat)
 
     # Loitering: low speed with small net displacement over a window.
-    win_s = 90 * 60.0
+    # 60 minutes is the conventional loitering threshold; a 90-minute window
+    # cannot see a two-hour stop reported at one-minute intervals.
+    win_s = 60 * 60.0
     i = 0
     best = None
     while i < len(tr.t):
