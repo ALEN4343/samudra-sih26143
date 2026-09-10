@@ -9,3 +9,8 @@ data/raw/
 data/models/*.pt
 artifacts/*/
 !artifacts/.gitkeep
+
+# Real datasets: 1.5 GB, reproducible from the sources documented in CLAUDE.md 7
+raw_data/
+data/raw/
+data/models/*.pt

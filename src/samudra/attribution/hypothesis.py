@@ -44,10 +44,17 @@ def score_terms(
     sm = major_axis_deg(proj.polygon_to_m(simulated))
     om = major_axis_deg(proj.polygon_to_m(observed))
     delta = angular_delta_deg(sm, om)
-    orient_term = max(0.0, min(1.0, 1.0 - delta / st["orientation_span_deg"]))
+    if st.get("orientation_mode", "cos") == "cos":
+        # CLAUDE.md 5.5 specifies cos(radians(delta)).
+        orient_term = math.cos(math.radians(delta))
+    else:
+        orient_term = max(0.0, min(1.0, 1.0 - delta / st["orientation_span_deg"]))
+    orient_term = max(0.0, min(1.0, orient_term))
 
     a = proj.polygon_to_m(simulated).area
     b = proj.polygon_to_m(observed).area
+    # CLAUDE.md 5.5 writes this as exp(-abs(log(area_ratio))), which is
+    # algebraically identical to min/max and avoids a log of zero.
     area_ratio = (min(a, b) / max(a, b)) if max(a, b) > 0 else 0.0
 
     total = (

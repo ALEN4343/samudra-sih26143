@@ -134,9 +134,14 @@ def run(
                 "length_m": r["candidate"].track.meta.get("length_m"),
                 "flag": r["candidate"].track.meta.get("flag"),
                 "posterior": r["posterior"],
+                "likelihood": r["likelihood"],
+                "geometric_score": r["geometric_score"],
                 "trust_prior": r["trust_prior"],
                 "behaviour_prior": r["behaviour_prior"],
                 "proximity_prior": r["proximity_prior"],
+                "type_risk_prior": r["type_risk_prior"],
+                "gap_coincidence": r["gap_coincidence"],
+                "prior_offences": r["prior_offences"],
                 "rationale": r["rationale"],
                 "trust_score": trust[r["mmsi"]]["score"],
                 "classification": trust[r["mmsi"]]["classification"],
@@ -198,14 +203,15 @@ def print_report(out: dict) -> None:
 
     print()
     print(f"{'#':<3}{'MMSI':<12}{'NAME':<19}{'POST':>7}{'SCORE':>7}{'IoU':>6}"
-          f"{'dORI':>6}{'AGE':>6}{'TRUST':>7}{'BEHAV':>7}  {'CLASS':<18}")
-    print("-" * 94)
+          f"{'dORI':>6}{'AGE':>6}{'TRUST':>7}{'BEHAV':>7}{'TYPE':>7}  {'CLASS':<18}")
+    print("-" * 101)
     for sp in out["suspects"]:
         b = sp["best_hypothesis"]
         print(f"{sp['rank']:<3}{sp['mmsi']:<12}{(sp['vessel_name'] or '')[:18]:<19}"
               f"{sp['posterior']:>7.3f}{b['score']:>7.3f}{b['iou']:>6.3f}"
               f"{b['orientation_delta_deg']:>6.1f}{b['age_hours']:>6.1f}"
-              f"{sp['trust_prior']:>7.2f}{sp['behaviour_prior']:>7.2f}  "
+              f"{sp['trust_prior']:>7.2f}{sp['behaviour_prior']:>7.2f}"
+              f"{sp.get('type_risk_prior', 1.0):>7.2f}  "
               f"{(sp.get('classification') or ''):<18}")
 
     flagged = [s for s in out["suspects"] if s.get("trust_flags") or s.get("behaviour_flags")]

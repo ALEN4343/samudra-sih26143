@@ -1,488 +1,518 @@
-# SAMUDRA — Architecture
+# SAMUDRA — Oil Spill Attribution Engine
 
-**S**AR **A**ttribution of **M**arine **U**nauthorised **D**ischarge, **R**anking and **A**ssessment.
+**SIH26143 (NTRO) — Satellite + AIS correlation for spill attribution**
+**Final build contract — rev. 3**
 
-A maritime oil-spill attribution system. It takes a SAR scene and AIS traffic, detects
-the slick, reverse-drifts it to an origin envelope, prunes the vessel field to those that
-could physically have been there, forward-simulates a release hypothesis for each
-survivor, and ranks them into a defensible, hash-chained evidence dossier.
-
-The differentiator is **layer 7**. Detecting oil is a solved problem. Naming the ship
-that spilled it, with a number attached to the claim, is not.
+This document is the build contract. Read it before writing code. Do not deviate from
+the data contracts in section 3 — every module is built against them independently.
+This file supersedes all earlier drafts. Section numbers below are referenced directly
+by the Claude Code build prompts — do not renumber.
 
 ---
 
-## 1. The 11 layers
+## 1. System identity
 
-| # | Layer | Section | Module |
-|---|---|---|---|
-| 1 | Ingestion & Normalisation | — | `ingest/` |
-| 2 | Detection — Slick Segmentation | §4.1 | `detection/` |
-| 3 | Baseline & Anomaly Scoring | §4.2 | `baseline/` |
-| 4 | Vessel Detection — CFAR | §4.3 | `vessels/` |
-| 5 | Trust, Identity & Behaviour | §4.4 | `trust/` |
-| 6 | Candidate Pruning | §4.5.3 | `attribution/prune.py` |
-| 7 | Drift & Attribution | §4.5 | `attribution/` |
-| 8 | Impact & Forecast | — | `impact/` |
-| 9 | Evidence & Chain of Custody | §4.6 | `evidence/` |
-| 10 | API & Dashboard | — | `api.py`, `web/` |
-| 11 | Orchestration & Reproducibility | — | `scripts/`, `synth/` |
+This is **not** an oil spill detector. Detectors already exist (EMSA CleanSeaNet,
+SkyTruth Cerulean). This is an **attribution engine**: it answers *which vessel*, with a
+defensible likelihood, against an adversary actively evading detection, and it does so
+using a compounding memory that gets better with every incident rather than scoring
+each scene in isolation.
 
-One line each, in order:
+Five architectural commitments distinguish it from existing systems:
 
-1. **Ingestion & Normalisation** — read SAR GeoTIFFs and AIS point feeds, normalise to the contracts in §3, write `artifacts/<incident_id>/`.
-2. **Detection** — land mask, wind gate, tiled CNN segmentation, polygonisation, confidence fusion.
-3. **Baseline & Anomaly** — per-cell H3 backscatter statistics conditioned on wind, z-scored against history.
-4. **Vessel Detection** — two-parameter CFAR over the scene to find radar targets, including ones with no AIS.
-5. **Trust, Identity & Behaviour** — AIS integrity checks and behavioural flags; classify each vessel MATCHED / DARK / PHANTOM / IDENTITY_MISMATCH.
-6. **Candidate Pruning** — reverse-advect the slick to an origin envelope, keep only vessels intersecting it in space *and* time.
-7. **Drift & Attribution** — sample release hypotheses along each surviving track, forward-simulate, score against the observed slick, rank into posteriors.
-8. **Impact & Forecast** — forward-forecast the slick to +24/48/72h with an uncertainty cone; compute coastline intersection and ETA.
-9. **Evidence & Chain of Custody** — PDF dossier plus a SHA-256 hash-chained audit log over all inputs and outputs.
-10. **API & Dashboard** — FastAPI over the artifacts directory; single-file Leaflet frontend with the funnel, ranked suspects and drift replay.
-11. **Orchestration & Reproducibility** — synthetic ground-truth generator and one-command end-to-end runner.
+| # | Gap in existing systems | Component |
+|---|---|---|
+| 1 | Detection is stateless per-scene | `baseline/` — persistent per-cell backscatter memory |
+| 2 | Attribution is nearest-track proximity | `attribution/` — forward-simulation hypothesis testing |
+| 3 | AIS is trusted or absent, never scored | `trust/` — adversarial credibility + behaviour scoring |
+| 4 | Revisit gaps are dead time | `ingest/` — opportunistic multi-sensor (SAR + optical) |
+| 5 | Irrelevant traffic isn't filtered explicitly | `attribution/prune.py` — named pruning stage with a reported funnel |
 
-### Data flow
+Output is an **evidence dossier for prosecution**, not a real-time alert. Sentinel-1
+revisit makes interception impossible; deterrence through attribution is the achievable
+goal. This is stated openly in the pitch, not hidden.
 
-```
-SAR scene ──┐
-            ├─► [2] detect ──► slick polygon ──┐
-AIS feed ───┤        ▲                         │
-            │        │                         ▼
-            │   [3] anomaly              [6] reverse-drift
-            │                                  │
-            ├─► [4] CFAR ──► radar targets     ▼
-            │        │                   origin envelope
-            │        ▼                         │
-            └─► [5] trust/behaviour ──────► [7] prune + hypothesise + rank
-                                               │
-                                    ┌──────────┼──────────┐
-                                    ▼          ▼          ▼
-                                 [8] forecast [9] dossier [10] dashboard
-```
+The brief explicitly asks for: (a) detection + geometric characterisation + age,
+(b) hindcast to origin + forecast of future spread, (c) attribution scored on proximity,
+trajectory, and behavioural anomalies, with irrelevant traffic filtered out. Every
+lettered requirement maps to a numbered layer below — see the table in section 2.
 
 ---
 
-## 2. Project structure
+## 2. System layers (11-layer architecture)
+
+This is the authoritative layer list. It matches the reviewed architecture diagram.
+
+| Layer | Name | Maps to brief requirement |
+|---|---|---|
+| 1 | Data Ingestion | SAR + EO + AIS + environment + AOI |
+| 2 | Preprocessing & Baseline | — (supports detection quality) |
+| 3 | AI Oil-Spill Detection | (a) detect and characterise |
+| 4 | Vessel Analysis (CFAR + AIS matching) | (c) reconstruct vessel traffic |
+| 5 | AIS Trust & Behaviour | (c) behavioural anomalies |
+| 6 | Environment & Drift Model | (b) hindcast + forecast |
+| 6b | Candidate Pruning | (c) filter out irrelevant traffic |
+| 7 | Vessel Attribution Engine | (c) score and rank suspects |
+| 8 | Impact Assessment & Prediction | (b) future flow of the slick |
+| 9 | Investigator Dashboard | "suitable visual interface" |
+| 10 | Evidence & Integrity | prosecution-grade output |
+| 11 | Dissemination & Alerting | Disaster Management theme |
+
+Storage & Infrastructure runs underneath all layers. A feedback loop (labelled **A** on
+the diagram) carries confirmed incidents from the dashboard back into the vessel
+dossier DB, which feeds attribution priors on future incidents — this is what makes the
+system compound rather than stay static.
+
+---
+
+## 3. Repo layout
 
 ```
 samudra/
-├── CLAUDE.md
-├── README.md
+├── CLAUDE.md                  # this file, symlinked
 ├── pyproject.toml
 ├── config/
-│   └── weights.yaml
-├── data/
-│   ├── raw/
-│   │   ├── ais/
-│   │   └── oilspill/
-│   │       ├── sos/
-│   │       └── binary/
-│   └── models/
-│       └── seg.pt
-├── artifacts/
-│   ├── audit.log
-│   └── <incident_id>/
-├── notebooks/
+│   ├── aoi.yaml                # AOI bounding boxes (demo cells)
+│   └── weights.yaml            # scoring weights, tunable without code change
+├── src/samudra/
+│   ├── contracts.py            # ALL pydantic models. Build this first.
+│   ├── synth/
+│   │   └── generate.py         # synthetic scenario generator with ground truth
+│   ├── ingest/
+│   │   ├── sentinel1.py        # GEE -> GeoTIFF (VV/VH, calibrated, terrain-corrected)
+│   │   ├── optical.py          # S2/S3 opportunistic pass (stub-able)
+│   │   ├── environment.py      # Open-Meteo marine: wind u/v, current u/v
+│   │   └── ais.py              # Real AIS loader (MarineCadastre bulk / AccessAIS)
+│   ├── baseline/
+│   │   ├── grid.py             # H3 res-7 cell indexing over AOI
+│   │   ├── build.py            # rolling sigma0 stats per (cell, wind_bin)
+│   │   └── anomaly.py          # z-score a new scene against baseline
+│   ├── detection/
+│   │   ├── preprocess.py       # land mask, wind gate, tiling
+│   │   ├── segmenter.py        # DeepLabv3+ inference
+│   │   ├── train.py            # fine-tuning on real SAR oil-spill datasets
+│   │   ├── polygonize.py       # raster -> polygons + geometric features
+│   │   └── fuse.py             # CNN prob x anomaly x wind gate -> confidence
+│   ├── vessels/
+│   │   ├── cfar.py             # SAR ship detection + length estimation
+│   │   ├── tracks.py           # AIS interpolation, gap detection
+│   │   └── match.py            # SAR <-> AIS association (Hungarian)
+│   ├── trust/
+│   │   └── score.py            # kinematic + identity + physical + behavioural checks
+│   ├── attribution/
+│   │   ├── drift.py            # particle advection (forward and reverse)
+│   │   ├── prune.py            # candidate pruning + funnel reporting
+│   │   ├── hypothesis.py       # release hypothesis generation + simulation
+│   │   └── rank.py             # likelihood x priors -> posterior ranking + slick age
+│   ├── impact/
+│   │   └── forecast.py         # forward spread forecast + coastline impact ETA
+│   ├── persist/
+│   │   ├── db.py                # DuckDB schema + accessors
+│   │   ├── corridor.py          # chronic discharge corridor aggregation
+│   │   └── dossier_db.py        # per-MMSI offence history (feeds connector A)
+│   ├── evidence/
+│   │   ├── report.py            # reportlab PDF dossier
+│   │   └── integrity.py         # SHA-256 hash chain + append-only audit log
+│   └── api.py                   # FastAPI: serves artifacts as GeoJSON/JSON
+├── web/                          # Leaflet frontend, dark basemap
 ├── scripts/
 │   ├── run_demo.sh
 │   └── train_segmenter.py
-├── src/samudra/
-│   ├── __init__.py
-│   ├── contracts.py
-│   ├── geo.py            # projection, polygon metrics, IoU
-│   ├── timeutil.py       # epoch conversion (see note below)
-│   ├── api.py
-│   ├── ingest/
-│   │   ├── __init__.py
-│   │   ├── ais.py
-│   │   └── scene.py
-│   ├── detection/
-│   │   ├── __init__.py
-│   │   ├── preprocess.py
-│   │   ├── segmenter.py
-│   │   ├── polygonize.py
-│   │   └── fuse.py
-│   ├── baseline/
-│   │   ├── __init__.py
-│   │   └── anomaly.py
-│   ├── vessels/
-│   │   ├── __init__.py
-│   │   └── cfar.py
-│   ├── trust/
-│   │   ├── __init__.py
-│   │   ├── score.py
-│   │   └── behaviour.py
-│   ├── attribution/
-│   │   ├── __init__.py
-│   │   ├── __main__.py
-│   │   ├── drift.py
-│   │   ├── prune.py
-│   │   ├── hypothesis.py
-│   │   └── rank.py
-│   ├── impact/
-│   │   ├── __init__.py
-│   │   ├── forecast.py
-│   │   └── coastline.py
-│   ├── evidence/
-│   │   ├── __init__.py
-│   │   ├── report.py
-│   │   └── integrity.py
-│   └── synth/
-│       ├── __init__.py
-│       └── generate.py
-├── tests/
-└── web/
-    └── index.html
+├── artifacts/<incident_id>/      # every stage writes here; demo replays from disk
+├── raw_data/                     # unsorted downloads land here first
+├── data/
+│   ├── raw/
+│   │   ├── ais/                  # sorted real AIS (Houston, filtered)
+│   │   └── oilspill/
+│   │       ├── sos/              # Kaggle Deep-SAR SOS (segmentation masks)
+│   │       └── binary/           # Kaggle Sentinel-1 binary oil/no-oil
+│   └── models/                   # checkpoints
+└── tests/
 ```
 
-### Conventions
-
-- All timestamps UTC, timezone-aware. **Convert to epoch seconds only through
-  `timeutil.epoch_seconds`.** pandas 3.0 stores datetimes as `datetime64[us]`, so
-  the common `series.astype("int64") / 1e9` idiom returns values 1000x too small.
-  It fails silently: time-window filters match nothing rather than raising.
-- `geo.py` holds shared projection and polygon geometry. The *physics* in
-  `synth/generate.py` and `attribution/drift.py` stays independently implemented —
-  that independence is what the drift round-trip test verifies.
-- All geometry GeoJSON, EPSG:4326, **longitude first**.
-- Every module has a CLI entrypoint and writes to `artifacts/<incident_id>/`.
-- Metric computation reprojects to a local azimuthal equidistant CRS via `pyproj`.
-  Never approximate with a fixed degrees-per-km constant.
-- Exceptions fail loudly. Never silently swallowed.
-- `contracts.py` is the single source of truth and changes only by explicit request.
+Every pipeline stage is a CLI entrypoint that reads from and writes to `artifacts/`.
+Nothing runs live during the demo. This is deliberate — it makes the demo deterministic
+and lets modules be built in parallel against fixture files.
 
 ---
 
-## 3. Contracts
+## 4. Data contracts
 
-All models are pydantic v2. `src/samudra/contracts.py` is authoritative; this section is
-the specification it implements.
+Write `contracts.py` first and commit it before anything else. All models are pydantic v2.
 
-### Vessel and AIS
+```python
+class Scene(BaseModel):
+    scene_id: str
+    sensor: Literal["S1_GRD", "S2_MSI", "S3_SLSTR"]
+    acquired_at: datetime          # UTC, always
+    footprint: dict                # GeoJSON Polygon
+    raster_path: Path
+    incidence_angle_deg: float | None
 
+class EnvSample(BaseModel):
+    lat: float; lon: float; t: datetime
+    wind_speed_ms: float; wind_dir_deg: float      # meteorological convention
+    current_u_ms: float; current_v_ms: float       # eastward, northward
+
+class SlickDetection(BaseModel):
+    slick_id: str
+    scene_id: str
+    polygon: dict                  # GeoJSON Polygon, EPSG:4326
+    area_km2: float
+    perimeter_km: float
+    shape_complexity: float        # P / (2 * sqrt(pi * A)); 1.0 = circle
+    eccentricity: float
+    major_axis_deg: float          # 0-180, key attribution feature
+    mean_sigma0_db: float
+    contrast_db: float             # background mean - slick mean
+    edge_gradient: float
+    cnn_oil_prob: float
+    cnn_lookalike_prob: float
+    baseline_anomaly_z: float      # from baseline/anomaly.py
+    wind_gate_pass: bool
+    confidence: float              # fused, calibrated 0-1
+
+class AisPoint(BaseModel):
+    mmsi: int; t: datetime
+    lat: float; lon: float
+    sog: float | None; cog: float | None; heading: float | None
+
+class SarShip(BaseModel):
+    target_id: str; scene_id: str
+    lat: float; lon: float
+    est_length_m: float
+    peak_sigma0_db: float
+
+class AisTrack(BaseModel):
+    mmsi: int
+    imo: int | None; name: str | None
+    ship_type: int | None; flag_mid: int | None
+    declared_length_m: float | None
+    points: list[AisPoint]         # sorted by t
+    gaps: list[tuple[datetime, datetime]]
+
+class TrustScore(BaseModel):
+    mmsi: int; scene_id: str
+    score: float                   # 0-1, 1 = fully credible
+    trust_flags: list[str]         # e.g. ["SOG_MISMATCH", "NO_SAR_RETURN"]
+    behaviour_flags: list[str]     # e.g. ["LOITERING", "SLOW_STEAMING", "NIGHT_MANOEUVRE"]
+    sar_corroborated: bool
+    classification: Literal["MATCHED", "DARK", "PHANTOM", "IDENTITY_MISMATCH"]
+
+class ReleaseHypothesis(BaseModel):
+    mmsi: int
+    release_at: datetime
+    release_lat: float; release_lon: float
+    simulated_polygon: dict
+    iou: float
+    centroid_offset_km: float
+    orientation_delta_deg: float
+    area_ratio: float
+    geometric_score: float
+
+class Suspect(BaseModel):
+    mmsi: int; name: str | None
+    best_hypothesis: ReleaseHypothesis
+    likelihood: float              # normalised across candidates
+    trust_prior: float
+    behaviour_prior: float
+    type_risk_prior: float
+    gap_coincidence: bool
+    prior_offences: int
+    posterior: float               # final ranking value
+    rationale: list[str]           # human-readable, goes into the PDF
+
+class SlickAge(BaseModel):
+    incident_id: str
+    estimated_range_hours: tuple[float, float]   # across top-3 hypotheses
+    fay_spreading_estimate_hours: float | None
+    agreement: bool                # do the two estimators roughly agree
+
+class Scenario(BaseModel):
+    # synthetic ground truth ONLY. No pipeline module other than tests may read this.
+    scenario_id: str
+    culprit_mmsi: int
+    true_release_at: datetime
+    true_release_lat: float; true_release_lon: float
+    acquisition_at: datetime
+    aoi_bounds: tuple[float, float, float, float]
 ```
-AisTrack
-  mmsi: int
-  points: list[AisPoint]              # see note
-  vessel_name: str | None
-  imo: int | None
-  vessel_type: str | None
-  length_m: float | None
-  flag: str | None
-  gaps: list[AisGap]
-```
-
-> `AisPoint` is referenced here but defined in `contracts.py` as:
-> `mmsi: int`, `t: datetime`, `lat: float`, `lon: float`, `sog: float`,
-> `cog: float | None`, `heading: float | None`.
-
-```
-AisGap
-  start_t: datetime
-  end_t: datetime
-  duration_min: float
-  start_lat, start_lon, end_lat, end_lon: float
-
-VesselDetection                        # radar target from CFAR, layer 4
-  det_id: str
-  lat, lon: float
-  length_m: float | None
-  peak_intensity: float
-  matched_mmsi: int | None
-```
-
-### Detection
-
-```
-SlickPolygon
-  slick_id: str
-  geometry: dict                       # GeoJSON Polygon, EPSG:4326
-  area_km2: float
-  perimeter_km: float
-  centroid_lat, centroid_lon: float
-  major_axis_deg: float                # orientation, 0-180, degrees from north
-  minor_axis_m: float
-  major_axis_m: float
-  eccentricity: float
-  shape_complexity: float              # perimeter / (2 * sqrt(pi * area))
-  mean_sigma0_db: float
-  cnn_oil_prob: float
-  anomaly_z: float
-  wind_gate_pass: bool
-  confidence: float                    # §4.1 fusion
-```
-
-### Environment
-
-```
-EnvField
-  lats: list[float]
-  lons: list[float]
-  times: list[datetime]
-  wind_u, wind_v: nested list[float]   # m/s
-  curr_u, curr_v: nested list[float]   # m/s
-
-EnvSummary
-  mean_wind_speed_ms: float
-  mean_wind_dir_deg: float
-  mean_current_speed_ms: float
-  mean_current_dir_deg: float
-  wind_gate_pass: bool
-```
-
-### Trust and behaviour
-
-```
-TrustScore
-  mmsi: int
-  score: float                         # 0-1, 1 = fully trusted
-  classification: Literal["MATCHED", "DARK", "PHANTOM", "IDENTITY_MISMATCH"]
-  trust_flags: list[Flag]
-  behaviour_flags: list[Flag]
-
-Flag
-  code: str
-  severity: Literal["INFO", "WARN", "CRITICAL"]
-  detail: str
-  at: datetime | None
-  lat, lon: float | None
-```
-
-### Attribution
-
-```
-Hypothesis
-  hypothesis_id: str
-  mmsi: int
-  release_at: datetime
-  release_lat, release_lon: float
-  simulated_geometry: dict             # GeoJSON Polygon
-  iou: float
-  centroid_offset_km: float
-  orientation_delta_deg: float
-  area_ratio: float
-  score: float                         # §4.5 weighted sum, 0-1
-
-Suspect
-  mmsi: int
-  vessel_name: str | None
-  rank: int
-  posterior: float                     # softmax across candidates, sums to 1
-  best_hypothesis: Hypothesis
-  top_hypotheses: list[Hypothesis]
-  trust_prior: float
-  behaviour_prior: float
-  proximity_prior: float
-  rationale: list[str]                 # human-readable bullets
-
-FunnelCounts
-  total_in_scene: int
-  in_envelope: int
-  scored: int
-  ranked: int
-
-SlickAge
-  best_hours: float
-  low_hours: float                     # across top 3 hypotheses
-  high_hours: float
-  fay_estimate_hours: float
-  agrees_with_fay: bool
-```
-
-### Incident and forecast
-
-```
-Incident
-  incident_id: str
-  acquisition_at: datetime
-  aoi_bounds: tuple[float, float, float, float]   # min_lon, min_lat, max_lon, max_lat
-  observed_slick: SlickPolygon
-  origin_envelope: dict                # GeoJSON Polygon
-  env_summary: EnvSummary
-  funnel: FunnelCounts
-  suspects: list[Suspect]
-  slick_age: SlickAge
-
-ForecastPolygon
-  horizon_hours: int                   # 24, 48, 72
-  geometry: dict
-  uncertainty_cone: dict
-  area_km2: float
-  coastline_intersects: bool
-  coastline_eta: datetime | None
-  affected_shoreline_km: float
-```
-
-### Synthetic ground truth
-
-```
-Scenario
-  scenario_id: str
-  culprit_mmsi: int
-  true_release_at: datetime
-  true_release_lat, true_release_lon: float
-  acquisition_at: datetime
-  aoi_bounds: tuple[float, float, float, float]
-```
-
-**`ground_truth.json` is read by the test suite only.** No pipeline module may open it.
 
 ---
 
-## 4. Algorithms
+## 5. Module specifications
 
-### 4.1 Slick segmentation
+### 5.1 `baseline/` — persistent memory
 
-- **Preprocess** — land mask; wind gate accepting only 3–10 m/s (below, the sea is too
-  flat to see a slick against; above, wind mixes it away); tile 512×512 with 64 px overlap.
-- **Segment** — DeepLabv3+ / ResNet-50 over tiles, stitched with overlap-averaged logits.
-- **Polygonize** — mask to polygons carrying every geometric feature in §3, including
-  `major_axis_deg`, `eccentricity` and `shape_complexity`.
-- **Fuse** — confidence combines the learned and statistical signals:
+Index the AOI with H3 resolution 7 (~5 km² cells). For each cell, maintain running mean
+and standard deviation of VV sigma0, **bucketed by wind speed bin** (0–3, 3–5, 5–7,
+7–10, 10+ m/s). Wind conditioning is essential — a cell is legitimately dark at 2 m/s
+and legitimately bright at 12 m/s, and pooling those makes the baseline meaningless.
 
-  ```
-  confidence = cnn_oil_prob * sigmoid(anomaly_z - 1.5) * wind_gate_pass
-  ```
+Storage: parquet, loaded into DuckDB. No database server.
 
-  A dark patch is only oil if the CNN says so *and* it is anomalous against that cell's
-  own history *and* the wind was in the detectable band. Look-alikes fail at least one.
+`anomaly.py` returns a z-score per pixel: `(sigma0 - cell_mean[wind_bin]) / cell_std[wind_bin]`.
+A genuine spill is anomalously dark *for that cell under those conditions*. A chronic
+seep is not anomalous at all — which is the entire point.
 
-### 4.2 Baseline and anomaly
+Bootstrapping needs ≥15 scenes per AOI cell. If fewer are available, fall back to a
+global background estimate and log that clearly rather than failing.
 
-H3 resolution-7 grid over the AOI. Per cell, accumulate sigma-0 statistics conditioned on
-wind bin. Anomaly is the z-score of the observed cell mean against that conditional
-distribution. **If fewer than 15 scenes are available for a cell, fall back to a global
-background estimate and log that clearly** — the fallback must be visible, not silent.
+### 5.2 `detection/`
 
-### 4.3 Vessel detection (CFAR)
+Preprocessing: land mask from Natural Earth coastlines with a 500 m buffer; wind gate
+masking out pixels where wind is outside 3–10 m/s (below, the sea is glassy and
+everything reads as a false positive; above, wind roughening scrubs the slick
+signature). Tile to 512×512 with 64 px overlap.
 
-Two-parameter CFAR with guard cells, threshold `k = 4.5`. Morphological grouping of
-above-threshold pixels into targets. Vessel length from the connected component's major
-axis. Targets are matched to AIS positions at acquisition time; unmatched radar targets
-are **DARK** vessels, and AIS reports with no radar target are **PHANTOM**.
+Segmentation: DeepLabv3+, ResNet-50 backbone, torchvision. Training data is two
+independent open SAR oil-spill datasets (see section 7 — the originally planned Zenodo
+mirror was unavailable): a segmentation-mask set used as the primary trainer, and a
+binary oil/no-oil set used as auxiliary signal. Class weighting is required; oil pixels
+are heavily under-represented. Input is VV in dB, clipped to [-35, 0], normalised.
 
-### 4.4 Trust, identity and behaviour
+**Polygonization and geometric feature extraction is an explicit stage** — this is
+where `area_km2`, `perimeter_km`, `shape_complexity`, `eccentricity`, and
+`major_axis_deg` are computed from the segmentation mask. Every downstream module
+(drift, attribution) depends on this output; detection is not "done" until these
+features exist.
 
-**Trust checks** — reported SOG vs speed derived from consecutive positions (flag
-disagreement > 5 kn); position teleports; impossible acceleration; positions on land;
-MMSI MID prefix inconsistent with declared flag; duplicate MMSI broadcasting from two
-places at once; AIS gaps over 15 minutes inside the AOI.
+**Optical branch:** Sentinel-2/3 sun-glint and thermal contrast detection over the same
+AOI when a cloud-free pass is available in the revisit gap. Feeds the same fusion step
+as the SAR branch rather than sitting unused. A tighter time bracket from combining
+sensors directly shrinks the attribution candidate set in `prune.py`.
 
-**Behaviour checks** — loitering (low speed with small net displacement over a window);
-unexplained speed reduction; course deviation from the vessel's own prevailing heading;
-night-time manoeuvring.
-
-**Classification**
-
-| Class | Meaning |
-|---|---|
-| `MATCHED` | AIS report and radar target agree |
-| `DARK` | Radar target, no AIS |
-| `PHANTOM` | AIS report, no radar target |
-| `IDENTITY_MISMATCH` | AIS present but internally inconsistent (MID/flag, duplicate MMSI, teleport) |
-
-### 4.5 Drift and attribution
-
-#### 4.5.1 Drift physics
-
+Fusion:
 ```
-v = current + 0.03 * wind_rotated
+confidence = cnn_oil_prob * sigmoid(baseline_anomaly_z - 1.5) * wind_gate_pass
 ```
+Calibrate on a held-out split; do not ship raw softmax as probability.
 
-where `wind_rotated` is the wind vector turned **15° clockwise** (Coriolis/Ekman
-deflection in the northern hemisphere). Integration is 5-minute Euler steps. Each
-particle takes an independent random-walk diffusion step with `K = 5 m²/s`.
+**Age estimation** does not live in this layer — it is computed in `attribution/rank.py`
+from the winning release hypothesis, since age requires knowing *when* the release
+happened, which is an attribution output, not a detection output. See 5.5.
 
-Positions convert to metres via `pyproj`, never a fixed constant. This is the single most
-common source of a silent catastrophic bug in this system, which is why the round-trip
-test in `tests/test_drift.py` exists.
+### 5.3 `vessels/`
 
-- `advect_forward(release_lat, release_lon, release_time, target_time, env_field, n_particles=500)`
-  → particle positions plus a polygon (alpha shape, falling back to convex hull).
-- `advect_reverse(slick_polygon, acquisition_time, hours_back, env_field)`
-  → origin envelope polygon per time step.
+CFAR ship detection on the same scene — two-parameter CFAR with guard cells: a pixel is
+a target where `sigma0 > mu_bg + k * sigma_bg`, k ≈ 4.5, background estimated from an
+annulus excluding guard cells. Morphological grouping into targets. Estimate vessel
+length from the major axis of the connected component, corrected for range/azimuth
+pixel spacing. Runs on the **calibrated, land-masked output of `preprocess.py`**, not
+raw ingestion.
 
-#### 4.5.2 Hypothesis scoring
+AIS interpolation: piecewise linear in time for gaps under 30 minutes. For longer gaps
+use a constant-turn-rate model. Flag any gap over 15 minutes while the vessel was
+inside the scene footprint.
 
-For each surviving vessel, sample release hypotheses every **30 minutes** along its own
-track within the window. Forward-simulate each and score against the observed slick:
+Matching: Hungarian assignment, cost = `haversine_km + lambda * |sar_length - ais_length|`,
+gated at 2 km. Unmatched SAR ships → DARK. Unmatched AIS positions inside the footprint
+where SAR shows nothing → PHANTOM.
 
+### 5.4 `trust/` — adversarial and behavioural layer
+
+Two check families, both contributing to `TrustScore`:
+
+**Trust (adversarial integrity).** Kinematic — reported SOG vs speed derived from
+consecutive positions (flag >5 kn disagreement), position teleports, physically
+impossible acceleration, positions on land, COG inconsistent with derived bearing.
+Identity — MMSI MID prefix inconsistent with declared flag, duplicate MMSI broadcasting
+from two locations simultaneously, SAR-measured length disagreeing with AIS-declared
+dimensions by >25%. Physical — the strongest signal: AIS claims a position inside the
+SAR footprint, CFAR finds no target there. AIS has no authentication whatsoever — it is
+an unencrypted VHF self-report — so this cross-check is the only ground truth available.
+
+**Behaviour (anomaly scoring).** Loitering (low speed, small net displacement over a
+window), unexplained speed reduction (slow steaming is the classic discharge
+signature), course deviation from the vessel's own prevailing heading, night-time
+manoeuvring. This directly answers the brief's "behavioural anomalies" requirement,
+which is distinct from adversarial spoofing.
+
+Both trust score and behaviour flags feed `attribution/rank.py` as priors. A spoofed
+track is not merely flagged; it reweights the entire suspect ranking.
+
+### 5.5 `attribution/` — the core
+
+**Two-stage design**, satisfying both the brief's explicit "trace toward origin"
+requirement and the stronger inference-based differentiator:
+
+**Stage 1 — hindcast (reverse advection).** Particle advection, forward Euler,
+5-minute steps:
 ```
-score = 0.40 * iou
-      + 0.25 * centroid_term
-      + 0.25 * orientation_term
-      + 0.10 * area_term
+v_particle = v_current + alpha * v_wind
+alpha = 0.03
+wind deflection: rotate wind vector 15 deg clockwise (Northern Hemisphere Coriolis)
+spreading: random walk, K = 5 m^2/s, applied per particle per step
 ```
+Run in reverse from the observed slick to produce an **origin envelope** — a
+space-time region, not a point. This is the literal backtracking the brief asks for,
+and it is cheap, so it runs first to prune the search space before the expensive step.
 
-with
-
+**Stage 2 — candidate pruning (`prune.py`).** Intersect the origin envelope with every
+AIS track in the scene. Only vessels intersecting it in both space and time survive.
+This is the brief's explicit "filter out irrelevant traffic" requirement, and it must
+be reported as a funnel, not silently applied:
 ```
-centroid_term    = exp(-centroid_offset_km / 10.0)
-orientation_term = 1 - (angular_delta_deg / 90.0)      # clamped to [0, 1]
-area_term        = min(a, b) / max(a, b)               # a, b = simulated, observed area
+total_in_scene -> in_envelope -> scored -> ranked
 ```
+That funnel, with real numbers, is one of the most persuasive artifacts in the pitch.
 
-Weights load from `config/weights.yaml`. **They are never tuned to make a scenario
-produce the right answer.** If ranking is wrong, print the term breakdown and find the
-broken term.
-
-#### 4.5.3 Candidate pruning
-
-Given the reverse-advected origin envelope and all AIS tracks, keep only vessels
-intersecting the envelope in **both space and time**. Report the funnel:
-`total_in_scene → in_envelope → scored → ranked`.
-
-The funnel is a first-class output, not a log line. Showing that 40 vessels became 6
-became 1 is the argument.
-
-#### 4.5.4 Ranking
-
+**Stage 3 — forward hypothesis testing (`hypothesis.py`).** For each surviving vessel,
+sample release times every 30 minutes along its own track, forward-simulate to
+acquisition time, and score the simulated polygon against the observed one:
 ```
-weighted_i  = best_score_i * trust_prior_i * behaviour_prior_i * proximity_prior_i
-posterior_i = softmax(weighted / T)_i
+geometric_score = w1*IoU
+                + w2*exp(-centroid_offset_km / 10)
+                + w3*cos(radians(orientation_delta_deg))
+                + w4*exp(-abs(log(area_ratio)))
 ```
+Weights in `config/weights.yaml`, defaults 0.4 / 0.25 / 0.25 / 0.10. Orientation
+matters more than it looks: a discharge from a *moving* vessel produces an elongated
+slick aligned with its course — a strong discriminator between two ships that
+transited the same water. Keep each vessel's best-scoring hypothesis. Softmax across
+vessels → likelihood.
 
-Prior multipliers come from `config/weights.yaml`. Before layer 5 exists, all priors
-pass as `1.0`. Each `Suspect` carries `rationale` — plain-English bullets a human
-investigator can read without knowing the formula.
+**Posterior (`rank.py`):**
+```
+posterior = likelihood
+          * trust_prior
+          * behaviour_prior
+          * type_risk_prior          # tanker/bulk > container > fishing
+          * (1.8 if gap_coincidence else 1.0)
+          * (1 + 0.4 * prior_offences)
+```
+Renormalise. Emit ranked `Suspect` list with rationale strings. Never output a binary
+accusation — ranked candidates with likelihood ratios only.
 
-#### 4.5.5 Slick age
+**Slick age.** `age = acquisition_time - best_hypothesis.release_at`, reported as a
+range across the top 3 hypotheses. Cross-check against inverse Fay spreading
+(area grows roughly as t^0.75) and report whether the two independent estimators agree
+— agreement is a strong, cheap credibility signal for the pitch.
 
-`age = acquisition_time - best_hypothesis.release_at`, reported as a range across the
-top 3 hypotheses. Cross-check against inverse Fay spreading (area grows roughly as
-`t^0.75`) and report whether the two independent estimates agree. Disagreement is
-reported, not hidden.
+### 5.6 `impact/` — forecast and coastline effect
 
-### 4.6 Evidence and chain of custody
+Forward advection of the *observed* slick (not a hypothesis) at +24h/+48h/+72h, with an
+uncertainty cone derived from particle spread at each horizon. Intersect each forecast
+polygon with a coastline geometry (Natural Earth) to report affected shoreline length
+and an impact ETA. This is the brief's "predict the future flow of the slick"
+requirement and must appear as a distinct product in the dashboard — a time slider
+toggling observed vs each forecast horizon — not just an internal artifact.
 
-**`report.py`** produces a PDF via reportlab containing, in order: incident header; the
-SAR scene chip with the slick polygon overlaid (rendered with matplotlib, embedded as an
-image); environmental conditions table; candidate funnel; ranked suspect table with
-posteriors and score breakdowns; winning hypothesis map; trust and behaviour flags
-raised; estimated slick age; forecast summary; MARPOL Annex I reference section.
+### 5.7 `evidence/`
 
-**`integrity.py`** computes SHA-256 over the canonical JSON of all pipeline inputs and
-outputs, appends it with a timestamp to `artifacts/audit.log`, **hash-chained to the
-previous entry**. The chain hash prints on the dossier's final page. An investigator can
-verify no artifact was altered after the fact.
+PDF via reportlab: SAR chip with slick polygon overlay, environmental conditions table,
+candidate funnel, candidate vessel table with posteriors, hypothesis replay map for the
+top suspect, estimated slick age, forecast summary, trust and behaviour flags raised,
+MARPOL Annex I citation. Frame as evidence for the Indian Coast Guard under NOS-DCP.
+
+Integrity: SHA-256 over the canonical JSON of all inputs and outputs; append hash plus
+timestamp to `artifacts/audit.log`, hash-chained to the previous entry. A hash chain
+gives the same chain-of-custody property as a blockchain without inviting the "why
+blockchain" question from a technical panel.
+
+### 5.8 Dissemination
+
+An alert output to Indian Coast Guard / NOS-DCP alongside the evidence dossier, with
+severity-tiered notification thresholds and a GeoJSON/REST export for response
+agencies. This is what ties the system explicitly to the Disaster Management theme
+rather than leaving it implicit.
+
+### 5.9 Feedback loop (connector A)
+
+Confirmed incidents, verified through the dashboard's human-in-the-loop review, write
+back into the vessel dossier DB (`persist/dossier_db.py`), which supplies
+`prior_offences` to future attribution runs. This is what makes the system compound: a
+stateless per-scene detector is exactly as good on day 400 as on day 1; this one is not.
 
 ---
 
-## 5. Scope
+## 6. Build order
 
-**In scope:** the layers above, running on synthetic ground truth and on real open data.
+Checkpoints are hard gates — do not proceed past a failing one. This order is
+risk-driven, not diagram-driven: the attribution engine (pure geometry, no GPU, no
+downloads) is built and proven correct before any real data is touched, using a
+synthetic scenario generator with known ground truth as the verification harness.
 
-**Explicitly out of scope** — decline these if proposed: Docker, Kubernetes, CI. Login,
-JWT, user accounts. Postgres or PostGIS (DuckDB needs no server). React or Next.js (a
-single Leaflet HTML file will not break on stage). Refactoring attribution once its test
-passes. Merging the two SAR datasets into one label scheme without inspecting their
-actual masks first.
+| Order | Task | Checkpoint |
+|---|---|---|
+| 0 | `contracts.py` complete and committed | imports clean, models instantiate |
+| 1 | `synth/generate.py` — synthetic scenario with planted culprit | 5 artifact files written, culprit named |
+| 2 | `attribution/drift.py` | forward-advected polygon overlaps ground truth, IoU > 0.5 |
+| 3 | `attribution/prune.py` + `hypothesis.py` + `rank.py` | **top-ranked MMSI matches the planted culprit** |
+| 4 | `api.py` + `web/` dashboard | map renders slick, tracks, ranked suspects |
+| 5 | `trust/score.py` wired into priors | planted spoofed/loitering vessels flagged; culprit still ranked #1 |
+| 6 | `impact/forecast.py` | forecast polygons render and grow over time on a slider |
+| 7 | `evidence/report.py` | PDF generates with a real map image, not a placeholder |
+| 8 | `scripts/run_demo.sh`, second synthetic scenario | culprit ranked #1 on a scenario not used during development |
+| 9 | Real AIS ingestion (Houston, MarineCadastre bulk) | ranking still correct against real, messy traffic |
+| 10 | SAR model training (two open datasets) | confusion matrix produced, oil vs background/look-alike |
+| 11 | Real detection wired in, with synthetic fallback preserved | `run_demo.sh` still works with no checkpoint present |
+| 12 | Rehearse demo x4 | no live computation on the critical path |
 
-## 6. Honesty
+Checkpoint 3 is the most important gate in the entire build: it is the empirical proof
+that the core differentiator works, independent of anything else in the system.
 
-Synthetic data is labelled synthetic, everywhere — in the dashboard, in the dossier, and
-out loud. The problem statement permits synthetic data to demonstrate the algorithm. The
-system's claim is that the *attribution engine* works and is verifiable against planted
-ground truth; that claim is stronger when the boundary between real and synthetic is
-stated plainly rather than blurred.
+---
+
+## 7. Data sources actually used
+
+The problem statement explicitly permits synthetic AIS ("Real AIS if available may be
+used else synthetic data can be prepared") and points at MarineCadastre and a Zenodo
+SAR dataset. What was actually used, and why, should be stated plainly in the pitch —
+this is compliance with the brief, not a shortcut:
+
+- **AIS:** real historical broadcast-point data from NOAA MarineCadastre, bulk daily
+  file, filtered to a Houston Ship Channel bounding box. Real vessel traffic, real
+  density and noise, not synthetic tracks pretending to be real.
+- **SAR training imagery:** the originally planned Zenodo Sentinel-1 oil-spill mirror
+  was unavailable — a documented, verifiable multi-day outage across Zenodo's files,
+  search, and website services, not a data-access failure on our side. Substituted with
+  two independent open datasets on Kaggle: one with pixel-level segmentation masks
+  (primary trainer), one with binary oil/no-oil labels (auxiliary signal). Both are
+  genuinely open Sentinel-1 SAR imagery.
+- **Environmental fields:** synthetic for the demo AOI (Arabian Sea), generated with
+  realistic wind/current statistics. Open-Meteo marine API is the production path.
+- **Ground truth for verification:** entirely synthetic, generated with a known culprit
+  vessel, known release time and position, and planted adversarial behaviour (spoofing,
+  loitering, gaps). This is what lets the attribution engine's correctness be checked
+  without needing an independently verified real spill, which does not exist on any
+  demo timescale.
+
+---
+
+## 8. Rules for Claude Code
+
+- **One module per session.** Load `contracts.py` plus the target module's spec section
+  only. Do not let context sprawl across the whole repo.
+- **Fixtures before implementations.** For each module, write
+  `tests/fixtures/<module>_in.json` by hand first where practical.
+- **No live network calls in any function under `attribution/` or `detection/`.**
+  Ingest is the only layer that touches the network.
+- **All timestamps UTC, all geometry EPSG:4326 GeoJSON.** No exceptions, no local CRS
+  leaking into contracts.
+- **Every stage CLI-invokable:** `python -m samudra.<module> --incident <id>`. Reads
+  from and writes to `artifacts/<id>/`.
+- **Never adjust scoring weights to force a correct ranking.** If attribution ranks the
+  wrong vessel, the fix is a bug fix in the geometry or priors, diagnosed by printing
+  the full score breakdown — not a weight tweak that happens to fix one scenario.
+- Do not add authentication, user accounts, or RBAC. Out of scope, and it dilutes the
+  pitch.
+- Do not refactor across module boundaries without updating `contracts.py` first.
+- `raw_data/` contents are never assumed — inspect actual file structure, column names,
+  and label conventions before writing any loader against them.
+
+---
+
+## 9. What is stubbed, and why that's fine to say out loud
+
+- Real-time interception is explicitly out of scope. Sentinel-1 revisit over the Indian
+  EEZ is roughly 6–12 days; the system is forensic attribution and deterrence, not
+  interception. State this before a judge asks — it reads as expertise, not a gap.
+- The optical (Sentinel-2/3) branch is architected and wired into fusion, but validated
+  on limited real passes given the timeline — say so plainly.
+- The Indian EEZ deployment AOI uses synthetic AIS by design (per the brief); the
+  Houston AOI uses real AIS to validate the engine against genuine traffic density.
+  Both are legitimate demonstrations of different things — say which is which on every
+  slide that shows a map.
+- Corridor/chronic-discharge mapping is architected (`persist/corridor.py`) but seeded
+  from a single demo AOI rather than the full EEZ within this timeline.
