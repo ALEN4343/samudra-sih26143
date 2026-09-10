@@ -90,6 +90,8 @@ samudra/
 ├── src/samudra/
 │   ├── __init__.py
 │   ├── contracts.py
+│   ├── geo.py            # projection, polygon metrics, IoU
+│   ├── timeutil.py       # epoch conversion (see note below)
 │   ├── api.py
 │   ├── ingest/
 │   │   ├── __init__.py
@@ -136,7 +138,13 @@ samudra/
 
 ### Conventions
 
-- All timestamps UTC, timezone-aware.
+- All timestamps UTC, timezone-aware. **Convert to epoch seconds only through
+  `timeutil.epoch_seconds`.** pandas 3.0 stores datetimes as `datetime64[us]`, so
+  the common `series.astype("int64") / 1e9` idiom returns values 1000x too small.
+  It fails silently: time-window filters match nothing rather than raising.
+- `geo.py` holds shared projection and polygon geometry. The *physics* in
+  `synth/generate.py` and `attribution/drift.py` stays independently implemented —
+  that independence is what the drift round-trip test verifies.
 - All geometry GeoJSON, EPSG:4326, **longitude first**.
 - Every module has a CLI entrypoint and writes to `artifacts/<incident_id>/`.
 - Metric computation reprojects to a local azimuthal equidistant CRS via `pyproj`.
