@@ -146,22 +146,24 @@ Two honest caveats worth stating out loud rather than burying:
 Eleven layers, specified in [CLAUDE.md](CLAUDE.md) — read that for the contracts,
 algorithms and data flow. In brief:
 
-| # | Layer | Module |
-|---|---|---|
-| 1 | Ingestion & normalisation | `ingest/` |
-| 2 | Detection — slick segmentation | `detection/` |
-| 3 | Baseline & anomaly scoring | `baseline/` |
-| 4 | Vessel detection — CFAR | `vessels/` |
-| 5 | Trust, identity & behaviour | `trust/` |
-| 6 | Candidate pruning | `attribution/prune.py` |
-| 7 | **Drift & attribution** | `attribution/` |
-| 8 | Impact & forecast | `impact/` |
-| 9 | Evidence & chain of custody | `evidence/` |
-| 10 | API & dashboard | `api.py`, `web/` |
-| 11 | Orchestration & reproducibility | `scripts/`, `synth/` |
+| # | Layer | Module | Status |
+|---|---|---|---|
+| 1 | Data Ingestion | `ingest/` | AIS real (Houston); SAR/optical/env pending |
+| 2 | Preprocessing & Baseline | `baseline/`, `detection/preprocess.py` | pending |
+| 3 | AI Oil-Spill Detection | `detection/` | pending |
+| 4 | Vessel Analysis (CFAR + AIS matching) | `vessels/` | pending |
+| 5 | AIS Trust & Behaviour | `trust/` | **built** |
+| 6 | Environment & Drift Model | `attribution/drift.py` | **built** |
+| 6b | Candidate Pruning | `attribution/prune.py` | **built** |
+| 7 | **Vessel Attribution Engine** | `attribution/` | **built** |
+| 8 | Impact Assessment & Prediction | `impact/` | **built** |
+| 9 | Investigator Dashboard | `api.py`, `web/` | **built** |
+| 10 | Evidence & Integrity | `evidence/` | **built** |
+| 11 | Dissemination & Alerting | — | pending |
 
-Layer 7 is the differentiator. Layers 2–4 currently run on the synthetic scene; the
-real-data path for them is described in CLAUDE.md sections 4.1–4.3.
+Layer 7 is the differentiator, and it is built and verified. Layers 2–4 currently run on
+the synthetic scene; the real-data path for them is specified in CLAUDE.md sections 5.1–5.3.
+Section 10.3 lists every remaining gap explicitly.
 
 Every module has a CLI entrypoint and writes to `artifacts/<incident_id>/`:
 
