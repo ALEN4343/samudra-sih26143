@@ -18,6 +18,7 @@ from shapely.geometry import mapping
 
 from samudra.attribution import drift, hypothesis, rank
 from samudra.attribution.prune import load_tracks, prune
+from samudra.trust.score import priors_from, score_tracks
 from samudra.geo import Projector, load_polygon, polygon_metrics
 
 
@@ -52,16 +53,25 @@ def run(
     t0 = time.time()
     steps = drift.advect_reverse(observed, acq, hours_back, env, n_particles=800, seed=3)
     envelope = drift.origin_envelope(steps)
-    say(f"[1/4] reverse drift   : {len(steps)} steps over {hours_back:.0f} h, "
+    say(f"[1/5] reverse drift   : {len(steps)} steps over {hours_back:.0f} h, "
         f"envelope {proj.polygon_to_m(envelope).area / 1e6:.0f} km2")
 
     tracks = load_tracks(d / "ais.parquet")
     window = (acq.timestamp() - hours_back * 3600.0, acq.timestamp())
     candidates, funnel = prune(tracks, steps, aoi_bounds=aoi, search_window=window)
-    say(f"[2/4] prune           : {funnel['total_in_scene']} in scene -> "
+    say(f"[2/5] prune           : {funnel['total_in_scene']} in scene -> "
         f"{funnel['in_envelope']} in envelope")
 
     candidates = candidates[:max_candidates]
+
+    # --- layer 5: trust and behaviour ------------------------------------
+    trust = score_tracks(tracks, cfg, proj)
+    priors = priors_from(trust, cfg)
+    for mmsi, t in trust.items():
+        t["priors"] = priors[mmsi]
+    (d / "trust.json").write_text(json.dumps(trust, indent=2))
+    n_flagged = sum(1 for t in trust.values() if t["trust_flags"] or t["behaviour_flags"])
+    say(f"[3/5] trust           : {n_flagged} of {len(trust)} vessels carry a flag")
 
     # --- layer 7: hypotheses ---------------------------------------------
     scored = []
@@ -74,11 +84,11 @@ def run(
             scored.append({"candidate": c, "hypotheses": hs})
     funnel["scored"] = len(scored)
     n_hyp = sum(len(s["hypotheses"]) for s in scored)
-    say(f"[3/4] hypotheses      : {n_hyp} releases simulated across {len(scored)} vessels")
+    say(f"[4/5] hypotheses      : {n_hyp} releases simulated across {len(scored)} vessels")
 
-    ranked = rank.rank_candidates(scored, cfg)
+    ranked = rank.rank_candidates(scored, cfg, priors_by_mmsi=priors)
     funnel["ranked"] = len(ranked)
-    say(f"[4/4] ranked          : {len(ranked)} suspects  ({time.time() - t0:.1f}s)")
+    say(f"[5/5] ranked          : {len(ranked)} suspects  ({time.time() - t0:.1f}s)")
 
     if not ranked:
         raise RuntimeError(
@@ -107,6 +117,13 @@ def run(
         ],
         "env_summary": env.summary(acq.timestamp()),
         "funnel": funnel,
+        "trust_summary": {
+            "vessels_scored": len(trust),
+            "vessels_flagged": n_flagged,
+            "identity_mismatch": [
+                m for m, t in trust.items() if t["classification"] == "IDENTITY_MISMATCH"
+            ],
+        },
         "slick_age": age,
         "suspects": [
             {
@@ -121,6 +138,10 @@ def run(
                 "behaviour_prior": r["behaviour_prior"],
                 "proximity_prior": r["proximity_prior"],
                 "rationale": r["rationale"],
+                "trust_score": trust[r["mmsi"]]["score"],
+                "classification": trust[r["mmsi"]]["classification"],
+                "trust_flags": trust[r["mmsi"]]["trust_flags"],
+                "behaviour_flags": trust[r["mmsi"]]["behaviour_flags"],
                 "best_hypothesis": _hyp_json(r["best"]),
                 "top_hypotheses": [_hyp_json(h) for h in r["hypotheses"][:3]],
             }
@@ -170,16 +191,32 @@ def print_report(out: dict) -> None:
     agree = "agrees" if a["agrees_with_fay"] else "DISAGREES"
     print(f"SLICK AGE  {a['best_hours']:.1f} h  (range {a['low_hours']:.1f}-{a['high_hours']:.1f} h "
           f"across top 3);  Fay cross-check {a['fay_estimate_hours']:.1f} h -> {agree}")
+    t = out.get("trust_summary")
+    if t:
+        print(f"TRUST      {t['vessels_flagged']} of {t['vessels_scored']} vessels flagged;"
+              f"  identity mismatch: {t['identity_mismatch'] or 'none'}")
 
-    print(f"\n{'#':<3}{'MMSI':<12}{'NAME':<20}{'POST':>7}{'SCORE':>7}{'IoU':>7}"
-          f"{'dCEN':>7}{'dORI':>7}{'AREA':>7}{'AGE':>7}")
-    print("-" * 78)
+    print()
+    print(f"{'#':<3}{'MMSI':<12}{'NAME':<19}{'POST':>7}{'SCORE':>7}{'IoU':>6}"
+          f"{'dORI':>6}{'AGE':>6}{'TRUST':>7}{'BEHAV':>7}  {'CLASS':<18}")
+    print("-" * 94)
     for sp in out["suspects"]:
         b = sp["best_hypothesis"]
-        print(f"{sp['rank']:<3}{sp['mmsi']:<12}{(sp['vessel_name'] or '')[:19]:<20}"
-              f"{sp['posterior']:>7.3f}{b['score']:>7.3f}{b['iou']:>7.3f}"
-              f"{b['centroid_offset_km']:>7.1f}{b['orientation_delta_deg']:>7.1f}"
-              f"{b['area_ratio']:>7.2f}{b['age_hours']:>7.1f}")
+        print(f"{sp['rank']:<3}{sp['mmsi']:<12}{(sp['vessel_name'] or '')[:18]:<19}"
+              f"{sp['posterior']:>7.3f}{b['score']:>7.3f}{b['iou']:>6.3f}"
+              f"{b['orientation_delta_deg']:>6.1f}{b['age_hours']:>6.1f}"
+              f"{sp['trust_prior']:>7.2f}{sp['behaviour_prior']:>7.2f}  "
+              f"{(sp.get('classification') or ''):<18}")
+
+    flagged = [s for s in out["suspects"] if s.get("trust_flags") or s.get("behaviour_flags")]
+    if flagged:
+        print()
+        print("FLAGS ON RANKED SUSPECTS")
+        for sp in flagged:
+            codes = [f"{fl['code']}({fl['severity'][0]})" for fl in sp.get("trust_flags", [])]
+            bcodes = [fl["code"] for fl in sp.get("behaviour_flags", [])]
+            print(f"  #{sp['rank']} {sp['mmsi']}  {', '.join(codes + bcodes)}")
+
 
     print("\nTOP SUSPECT RATIONALE")
     for line in out["suspects"][0]["rationale"]:

@@ -434,11 +434,28 @@ def build_tracks(
     return vessels
 
 
-def inject_anomalies(rng, vessels: list[Vessel], protect_mmsi: int) -> dict[str, list[int]]:
+def _shift_remainder(rows, start_idx, dlat, dlon):
+    """Translate the rest of a track so a rewritten segment stays continuous.
+
+    A vessel that loiters for two hours is two hours behind on its route. Without
+    this the track jumps back to where it would have been, which reads to the
+    trust layer as a position teleport - an artefact of the generator, not a
+    behaviour we meant to plant.
+    """
+    for r in rows[start_idx:]:
+        r["lat"] += dlat
+        r["lon"] += dlon
+
+
+def inject_anomalies(rng, proj, vessels: list[Vessel], protect_mmsi: int) -> dict[str, list[int]]:
     """Plant the behaviours layer 5 must find.
 
     The culprit is deliberately excluded. If the culprit were also the spoofer,
     the priors would hand attribution the right answer for the wrong reason.
+
+    Each injection must leave the track *physically coherent*, so that the only
+    anomaly present is the one being planted. Otherwise the trust layer scores
+    well by detecting generator artefacts.
     """
     pool = [v for v in vessels if v.mmsi != protect_mmsi and len(v.rows) > 120]
     rng.shuffle(pool)
@@ -448,14 +465,18 @@ def inject_anomalies(rng, vessels: list[Vessel], protect_mmsi: int) -> dict[str,
         out, pool[:] = pool[:n], pool[n:]
         return out
 
-    for v in take(3):  # AIS gaps
+    # AIS gaps: the vessel keeps moving while silent, so simply dropping the
+    # reports is already coherent.
+    for v in take(3):
         n = len(v.rows)
         i0 = int(rng.integers(n // 4, n * 3 // 4))
         span = int(rng.integers(8, 30))
         del v.rows[i0 : i0 + span]
         planted["ais_gap"].append(v.mmsi)
 
-    for v in take(1):  # spoofed segment: implausible position jump and back
+    # Spoofed segment: an implausible position jump and back. This one is
+    # *meant* to be incoherent - that is the whole point of spoofing.
+    for v in take(1):
         n = len(v.rows)
         i0 = int(rng.integers(n // 3, n * 2 // 3))
         for r in v.rows[i0 : i0 + 6]:
@@ -463,24 +484,73 @@ def inject_anomalies(rng, vessels: list[Vessel], protect_mmsi: int) -> dict[str,
             r["lon"] += 0.31
         planted["spoofed"].append(v.mmsi)
 
-    for v in take(2):  # loiter
+    # Loiter: circle in place at low speed, then resume from where it stopped.
+    for v in take(2):
         n = len(v.rows)
         i0 = int(rng.integers(n // 4, n * 2 // 3))
         span = min(int(rng.integers(40, 80)), n - i0 - 1)
+        if span < 10:
+            continue
         base_lat, base_lon = v.rows[i0]["lat"], v.rows[i0]["lon"]
+        orig_lat = v.rows[i0 + span - 1]["lat"]
+        orig_lon = v.rows[i0 + span - 1]["lon"]
+        # Advance around the circle at the speed we report. A fixed angular step
+        # implies a tangential speed unrelated to SOG, which the trust layer
+        # correctly flags as a disagreement - again, a generator artefact.
+        radius_deg = 0.004
+        radius_m = radius_deg * 111_000.0
+        # Offset the centre so that at ang=0 the vessel is exactly where it
+        # already was. Centring on the current position instead makes the track
+        # jump one radius on entry, which reads as a SOG disagreement.
+        centre_lat, centre_lon = base_lat, base_lon - radius_deg
+        ang = 0.0
         for k, r in enumerate(v.rows[i0 : i0 + span]):
-            ang = k * 0.35
-            r["lat"] = base_lat + 0.004 * math.sin(ang)
-            r["lon"] = base_lon + 0.004 * math.cos(ang)
-            r["sog"] = float(abs(rng.normal(0.4, 0.2)))
+            sog_kn = float(abs(rng.normal(0.4, 0.1)))
+            if k > 0:
+                dt = r["t"] - v.rows[i0 + k - 1]["t"]
+                ang += (sog_kn * KN_TO_MS * dt) / radius_m
+            r["lat"] = centre_lat + radius_deg * math.sin(ang)
+            r["lon"] = centre_lon + radius_deg * math.cos(ang)
+            r["sog"] = sog_kn
             r["cog"] = float((math.degrees(ang) + 90) % 360)
+        exit_lat = v.rows[i0 + span - 1]["lat"]
+        exit_lon = v.rows[i0 + span - 1]["lon"]
+        _shift_remainder(v.rows, i0 + span, exit_lat - orig_lat, exit_lon - orig_lon)
         planted["loiter"].append(v.mmsi)
 
-    for v in take(1):  # sharp unexplained slowdown
+    # Sharp slowdown: actually slow the vessel down. Changing only the reported
+    # SOG would be speed spoofing, and would be flagged as a data inconsistency
+    # rather than as the manoeuvre we intend to plant.
+    for v in take(1):
         n = len(v.rows)
         i0 = int(rng.integers(n // 3, n * 2 // 3))
-        for r in v.rows[i0 : i0 + 50]:
-            r["sog"] = float(max(rng.normal(3.0, 0.4), 0.5))
+        span = min(50, n - i0 - 1)
+        if span < 10:
+            continue
+        slow_kn = float(max(rng.normal(3.0, 0.4), 1.5))
+        orig_lat = v.rows[i0 + span - 1]["lat"]
+        orig_lon = v.rows[i0 + span - 1]["lon"]
+
+        x, y = proj.to_m(
+            np.array([r["lon"] for r in v.rows[i0 : i0 + span]]),
+            np.array([r["lat"] for r in v.rows[i0 : i0 + span]]),
+        )
+        px, py = float(x[0]), float(y[0])
+        for k, r in enumerate(v.rows[i0 : i0 + span]):
+            if k > 0:
+                dt = r["t"] - v.rows[i0 + k - 1]["t"]
+                hr = math.radians(r["cog"])
+                step = slow_kn * KN_TO_MS * dt
+                px += math.sin(hr) * step
+                py += math.cos(hr) * step
+            lon_k, lat_k = proj.to_deg(px, py)
+            r["lat"], r["lon"] = float(lat_k), float(lon_k)
+            r["sog"] = float(max(rng.normal(slow_kn, 0.15), 0.3))
+        _shift_remainder(
+            v.rows, i0 + span,
+            v.rows[i0 + span - 1]["lat"] - orig_lat,
+            v.rows[i0 + span - 1]["lon"] - orig_lon,
+        )
         planted["slowdown"].append(v.mmsi)
 
     return planted
@@ -733,7 +803,7 @@ def generate(
     vessels.extend(decoys)
 
     # --- planted behaviours ----------------------------------------------
-    planted = inject_anomalies(rng, vessels, protect_mmsi=culprit.mmsi)
+    planted = inject_anomalies(rng, proj, vessels, protect_mmsi=culprit.mmsi)
 
     # --- write AIS ---------------------------------------------------------
     rows = []
