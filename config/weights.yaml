@@ -41,6 +41,10 @@ priors:
 fay:
   spreading_exponent: 0.75     # area ~ t^0.75
   agreement_tolerance_hours: 6.0
+  # Area a reference discharge reaches after 1 hour. Encodes an assumed release
+  # volume and oil type, so the Fay figure is a consistency check against an
+  # assumed spreading rate — NOT an independent measurement. Reported as such.
+  reference_area_km2_at_1h: 18.0
 
 # 4.5.1 â€” drift physics.
 drift:

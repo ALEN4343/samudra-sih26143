@@ -357,6 +357,7 @@ def build_tracks(
     t_start: datetime,
     t_end: datetime,
     n_vessels: int,
+    anchors: list[tuple[float, float, float]] | None = None,
 ) -> list[Vessel]:
     """Vessels transiting the AOI over the window, 1-5 minute reporting.
 
@@ -370,8 +371,10 @@ def build_tracks(
     vessels: list[Vessel] = []
 
     window_s = (t_end - t_start).total_seconds()
+    if anchors is not None:
+        n_vessels = len(anchors)
     attempts = 0
-    while len(vessels) < n_vessels and attempts < n_vessels * 12:
+    while len(vessels) < n_vessels and attempts < n_vessels * 40:
         attempts += 1
         mmsi, name, imo, vtype, length, flag = _make_identity(rng, used)
         v = Vessel(mmsi, name, imo, vtype, length, flag)
@@ -384,10 +387,13 @@ def build_tracks(
 
         # Anchor point inside the AOI, and the time the vessel is there. The time
         # range overruns t_end so vessels are still arriving at the acquisition.
-        px = float(rng.uniform(min_lon, max_lon))
-        py = float(rng.uniform(min_lat, max_lat))
+        if anchors is not None:
+            px, py, t_mid = anchors[len(vessels)]
+        else:
+            px = float(rng.uniform(min_lon, max_lon))
+            py = float(rng.uniform(min_lat, max_lat))
+            t_mid = t_start.timestamp() + float(rng.uniform(-0.10, 1.15)) * window_s
         anchor_x, anchor_y = proj.to_m(px, py)
-        t_mid = t_start.timestamp() + float(rng.uniform(-0.10, 1.15)) * window_s
 
         n_steps = int(window_s // interval_s) + 1
         t = t_start.timestamp() + np.arange(n_steps) * interval_s
@@ -604,6 +610,7 @@ def generate(
     bounds: tuple[float, float, float, float] = (68.0, 15.0, 73.0, 20.0),
     acquisition_at: datetime | None = None,
     n_vessels: int = 40,
+    n_decoys: int = 7,
     wind_range: tuple[float, float] = (4.0, 9.0),
     out_root: Path = Path("artifacts"),
 ) -> dict:
@@ -700,6 +707,31 @@ def generate(
     sx, sy = proj.to_m(*slick.exterior.coords.xy)
     area_km2 = Polygon(np.column_stack([sx, sy])).area / 1e6
 
+    # --- decoys ------------------------------------------------------------
+    # Vessels that also transited near the origin around the release window. In a
+    # real shipping lane several ships pass through the same water, and that is
+    # precisely what makes attribution hard. Without them the origin envelope
+    # holds exactly one candidate and ranking never has to discriminate — the
+    # pipeline would look correct while proving nothing.
+    d_km = 111.0
+    decoy_anchors = []
+    for _ in range(n_decoys):
+        bearing = rng.uniform(0, 2 * math.pi)
+        dist_km = rng.uniform(4.0, 22.0)
+        dlat = dist_km * math.cos(bearing) / d_km
+        dlon = dist_km * math.sin(bearing) / (d_km * math.cos(math.radians(true_lat)))
+        decoy_anchors.append(
+            (
+                float(np.clip(true_lon + dlon, min_lon + 0.05, max_lon - 0.05)),
+                float(np.clip(true_lat + dlat, min_lat + 0.05, max_lat - 0.05)),
+                release_at.timestamp() + float(rng.uniform(-2.5, 2.5)) * 3600.0,
+            )
+        )
+    decoys = build_tracks(
+        rng, proj, bounds, t_start, acquisition_at, len(decoy_anchors), anchors=decoy_anchors
+    )
+    vessels.extend(decoys)
+
     # --- planted behaviours ----------------------------------------------
     planted = inject_anomalies(rng, vessels, protect_mmsi=culprit.mmsi)
 
@@ -775,6 +807,8 @@ def generate(
         "slick_area_km2": round(area_km2, 3),
         "slick_age_hours": round(age_hours, 3),
         "n_vessels": len(vessels),
+        "n_decoys": len(decoys),
+        "decoy_mmsis": [d.mmsi for d in decoys],
         "planted_anomalies": planted,
         "scene": scene_meta,
     }
@@ -788,6 +822,7 @@ def main() -> None:
     ap.add_argument("--scenario", default="demo-001")
     ap.add_argument("--seed", type=int, default=20260101)
     ap.add_argument("--vessels", type=int, default=40)
+    ap.add_argument("--decoys", type=int, default=7)
     ap.add_argument("--wind-min", type=float, default=4.0)
     ap.add_argument("--wind-max", type=float, default=9.0)
     ap.add_argument("--bounds", type=float, nargs=4, default=[68.0, 15.0, 73.0, 20.0],
@@ -802,12 +837,13 @@ def main() -> None:
         bounds=tuple(a.bounds),
         acquisition_at=datetime.fromisoformat(a.acquisition),
         n_vessels=a.vessels,
+        n_decoys=a.decoys,
         wind_range=(a.wind_min, a.wind_max),
         out_root=Path(a.out),
     )
 
     print(f"scenario            : {gt['scenario_id']}  (seed {gt['seed']})")
-    print(f"tracks generated    : {gt['n_vessels']}")
+    print(f"tracks generated    : {gt['n_vessels']}  (incl. {gt['n_decoys']} decoys near origin)")
     print(f"culprit MMSI        : {gt['culprit_mmsi']}  {gt['culprit_name']} ({gt['culprit_type']})")
     print(f"true release at     : {gt['true_release_at']}")
     print(f"true release pos    : {gt['true_release_lat']:.5f} N, {gt['true_release_lon']:.5f} E")
