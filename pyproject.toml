@@ -23,6 +23,11 @@ dependencies = [
     "pyarrow",
     "pyyaml",
     "Pillow",
+  "zstandard",
+  # Layer 3 detection. CPU wheels by default; install the CUDA build from
+  # https://download.pytorch.org/whl/cu121 for the full training run.
+  "torch",
+  "torchvision",
     "zstandard",
 ]
 
