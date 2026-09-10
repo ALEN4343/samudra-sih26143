@@ -106,7 +106,7 @@ def test_identity_mismatch_raises_not_lowers_the_prior(scored):
 def test_culprit_still_ranked_first_with_priors_applied(gt):
     from samudra.attribution.__main__ import run
 
-    out = run("demo-001", Path("artifacts"), quiet=True)
+    out = run("demo-001", Path("artifacts"), quiet=True, write_outputs=False)
     top = out["suspects"][0]
     assert top["mmsi"] == gt["culprit_mmsi"], (
         f"priors demoted the culprit: "

@@ -35,7 +35,7 @@ def gt() -> dict:
 
 @pytest.fixture(scope="module")
 def result() -> dict:
-    return run("demo-001", Path("artifacts"), quiet=True)
+    return run("demo-001", Path("artifacts"), quiet=True, write_outputs=False)
 
 
 def test_culprit_is_ranked_first(result, gt):

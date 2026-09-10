@@ -55,7 +55,7 @@ def results() -> dict[str, tuple[dict, dict]]:
     out = {}
     for s in SCENARIOS:
         gt = json.loads((ROOT / s / "ground_truth.json").read_text())
-        out[s] = (run(s, ROOT, quiet=True), gt)
+        out[s] = (run(s, ROOT, quiet=True, write_outputs=False), gt)
     return out
 
 

@@ -176,8 +176,12 @@ async function load(id){
   }catch(e){ $('#err').textContent=e.message; return; }
 
   $('#hdr').textContent=`acquisition ${INC.acquisition_at.replace('T',' ').replace('+00:00',' UTC')}`;
-  $('#synth').textContent=INC.synthetic?'SYNTHETIC':'REAL';
-  $('#synth').style.color=INC.synthetic?'#d29922':'var(--ok)';
+  // The Houston incident has REAL traffic and a synthetic release; saying just
+  // "SYNTHETIC" undersells it and saying just "REAL" would overstate it.
+  const realTraffic=(TRACKS.features.length>200)||(INC.slick_source&&INC.slick_source.traffic==='real');
+  const isReal=(INC.incident_id||'').startsWith('houston');
+  $('#synth').textContent=isReal?'REAL AIS · SYNTHETIC RELEASE':(INC.synthetic?'SYNTHETIC':'REAL');
+  $('#synth').style.color=isReal?'#58a6ff':(INC.synthetic?'#d29922':'var(--ok)');
 
   drawEnvelope(); drawSlick(); drawTracks(); renderFunnel(); renderCond(); renderCards();
   initForecast();
@@ -242,7 +246,8 @@ function renderCond(){
     ['Long axis',`${fmt(s.major_axis_deg,0)}°`],
     ['Eccentricity',fmt(s.eccentricity,3)],
     ['Estimated age',`${fmt(a.best_hours,1)} h (${fmt(a.low_hours,1)}–${fmt(a.high_hours,1)})`],
-    ['Fay cross-check',`${fmt(a.fay_estimate_hours,1)} h — ${a.agrees_with_fay?'agrees':'disagrees'}`],
+    ['Fay cross-check',`${fmt(a.fay_estimate_hours,1)} h — ${a.agrees_with_fay?'agrees':'DISAGREES'}`
+      + (a.fay_ratio?` (${fmt(a.fay_ratio,2)}×)`:'')],
   ];
   $('#cond').innerHTML=rows.map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('');
 }

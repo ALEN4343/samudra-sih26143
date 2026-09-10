@@ -119,7 +119,11 @@ fay:
 
   spreading_exponent: 0.75     # area ~ t^0.75
 
-  agreement_tolerance_hours: 6.0
+  # Agreement is a ratio test: the two estimates agree when Fay is within this
+  # factor of the drift-derived age. A flat hour tolerance passes 1.2 h against
+  # 5.5 h, which is a factor of four and not agreement at all.
+  agreement_factor: 2.0
+  agreement_tolerance_hours: 6.0   # retained for reference; no longer used
 
   # Area a reference discharge reaches after 1 hour. Encodes an assumed release
 

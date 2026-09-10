@@ -172,11 +172,26 @@ def slick_age(top: list[dict], acquisition_at: datetime, observed_area_km2: floa
     ages = [h["age_hours"] for h in top[:3]]
     best = top[0]["age_hours"]
     fay = fay_age_hours(observed_area_km2, cfg)
-    tol = cfg["fay"]["agreement_tolerance_hours"]
+
+    # Agreement is a RATIO test, not an absolute one. A flat +/- 6 h tolerance
+    # passes 1.2 h against 5.5 h, which is a factor of four and obviously not
+    # agreement; it only looks acceptable because both numbers are small. Fay
+    # spreading carries large uncertainty, so a factor-of-N band is the honest
+    # standard and it scales correctly with slick age.
+    f = cfg["fay"]
+    factor = float(f.get("agreement_factor", 2.0))
+    ok = False
+    ratio = float("nan")
+    if fay == fay and fay > 0 and best > 0:
+        ratio = fay / best
+        ok = (1.0 / factor) <= ratio <= factor
+
     return {
         "best_hours": best,
         "low_hours": min(ages),
         "high_hours": max(ages),
         "fay_estimate_hours": fay,
-        "agrees_with_fay": bool(abs(fay - best) <= tol) if fay == fay else False,
+        "fay_ratio": ratio,
+        "agreement_factor": factor,
+        "agrees_with_fay": bool(ok),
     }

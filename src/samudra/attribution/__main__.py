@@ -91,8 +91,16 @@ def run(
     n_particles: int = 250,
     max_candidates: int = 12,
     detection: str = "auto",
+    write_outputs: bool = True,
     quiet: bool = False,
 ) -> dict:
+    """Run layers 5-7 for one incident.
+
+    `write_outputs=False` keeps the run read-only. Tests use it: writing
+    incident.json after a dossier has already recorded its digest breaks the
+    audit chain, so simply running the test suite would leave the demo showing
+    "chain of custody: BROKEN" for no reason at all.
+    """
     d = root / incident
     cfg = yaml.safe_load(open("config/weights.yaml"))
 
@@ -137,7 +145,8 @@ def run(
     priors = priors_from(trust, cfg)
     for mmsi, t in trust.items():
         t["priors"] = priors[mmsi]
-    (d / "trust.json").write_text(json.dumps(trust, indent=2))
+    if write_outputs:
+        (d / "trust.json").write_text(json.dumps(trust, indent=2))
     n_flagged = sum(1 for t in trust.values() if t["trust_flags"] or t["behaviour_flags"])
     say(f"[3/5] trust           : {n_flagged} of {len(trust)} vessels carry a flag")
 
@@ -222,7 +231,8 @@ def run(
             for r in ranked
         ],
     }
-    (d / "incident.json").write_text(json.dumps(out, indent=2))
+    if write_outputs:
+        (d / "incident.json").write_text(json.dumps(out, indent=2))
     return out
 
 
