@@ -22,6 +22,67 @@ from samudra.trust.score import priors_from, score_tracks
 from samudra.geo import Projector, load_polygon, polygon_metrics
 
 
+def resolve_observed_slick(d: Path, mode: str = "auto") -> tuple[object, datetime, dict]:
+    """Choose the observed slick: real detection output, or the synthetic one.
+
+    CLAUDE.md build order step 11 requires real detection when a checkpoint
+    exists and a fall back to the synthetic slick when it does not, with
+    run_demo.sh working either way.
+
+    "auto" additionally refuses a checkpoint that its own metadata marks as NOT
+    representative. A 2-epoch CPU smoke checkpoint technically exists, and
+    silently routing the demo through it would replace a known-good input with a
+    known-bad one while looking like an upgrade. Pass --detection always to
+    override.
+    """
+    gj = json.loads((d / "observed_slick.geojson").read_text())
+    acq = datetime.fromisoformat(gj["features"][0]["properties"]["acquisition_at"])
+
+    det_path = d / "detected_slicks.geojson"
+    if mode == "never" or not det_path.exists():
+        return load_polygon(gj), acq, {
+            "source": "synthetic",
+            "reason": "no detection output" if mode != "never" else "detection disabled",
+        }
+
+    fc = json.loads(det_path.read_text())
+    feats = [f for f in fc.get("features", []) if f["properties"].get("confidence", 0) > 0]
+    if not feats:
+        return load_polygon(gj), acq, {
+            "source": "synthetic",
+            "reason": "detector produced no confident polygon",
+        }
+
+    representative = True
+    for f in feats:
+        if f["properties"].get("checkpoint_representative") is False:
+            representative = False
+    meta_p = d / "detection_meta.json"
+    if meta_p.exists():
+        representative = bool(json.loads(meta_p.read_text()).get("representative", True))
+
+    if mode == "auto" and not representative:
+        return load_polygon(gj), acq, {
+            "source": "synthetic",
+            "reason": (
+                "a detection checkpoint exists but is marked NOT representative "
+                "(smoke-test weights). Using it would degrade the demo. Run the "
+                "full GPU training, or pass --detection always to force it."
+            ),
+        }
+
+    best = max(feats, key=lambda f: f["properties"]["confidence"])
+    return load_polygon(best["geometry"]), acq, {
+        "source": "detected",
+        "slick_id": best["properties"].get("slick_id"),
+        "confidence": best["properties"].get("confidence"),
+        "cnn_oil_prob": best["properties"].get("cnn_oil_prob"),
+        "baseline_anomaly_z": best["properties"].get("baseline_anomaly_z"),
+        "candidates": len(feats),
+        "representative": representative,
+    }
+
+
 def run(
     incident: str,
     root: Path = Path("artifacts"),
@@ -29,14 +90,14 @@ def run(
     interval_min: float = 30.0,
     n_particles: int = 250,
     max_candidates: int = 12,
+    detection: str = "auto",
     quiet: bool = False,
 ) -> dict:
     d = root / incident
     cfg = yaml.safe_load(open("config/weights.yaml"))
 
     slick_gj = json.loads((d / "observed_slick.geojson").read_text())
-    observed = load_polygon(slick_gj)
-    acq = datetime.fromisoformat(slick_gj["features"][0]["properties"]["acquisition_at"])
+    observed, acq, slick_source = resolve_observed_slick(d, detection)
 
     env = drift.EnvField.load(d / "env.npz")
     aoi = (
@@ -53,6 +114,13 @@ def run(
     t0 = time.time()
     steps = drift.advect_reverse(observed, acq, hours_back, env, n_particles=800, seed=3)
     envelope = drift.origin_envelope(steps)
+    if slick_source["source"] == "detected":
+        say(f"[0/5] slick source    : DETECTED by the segmenter "
+            f"({slick_source['slick_id']}, confidence {slick_source['confidence']:.3f}, "
+            f"{slick_source['candidates']} candidate polygons)")
+    else:
+        say(f"[0/5] slick source    : synthetic — {slick_source['reason']}")
+
     say(f"[1/5] reverse drift   : {len(steps)} steps over {hours_back:.0f} h, "
         f"envelope {proj.polygon_to_m(envelope).area / 1e6:.0f} km2")
 
@@ -108,6 +176,7 @@ def run(
         "acquisition_at": acq.isoformat(),
         "aoi_bounds": list(aoi),
         "synthetic": bool(slick_gj["features"][0]["properties"].get("synthetic")),
+        "slick_source": slick_source,
         "observed_slick": {"geometry": mapping(observed), **metrics},
         "origin_envelope": mapping(envelope),
         "envelope_steps": [
@@ -236,11 +305,14 @@ def main() -> None:
     ap.add_argument("--hours-back", type=float, default=16.0)
     ap.add_argument("--interval-min", type=float, default=30.0)
     ap.add_argument("--particles", type=int, default=250)
+    ap.add_argument("--detection", choices=["auto", "always", "never"], default="auto",
+                    help="use the segmenter's output as the observed slick")
     a = ap.parse_args()
 
     out = run(
         a.incident, Path(a.root),
         hours_back=a.hours_back, interval_min=a.interval_min, n_particles=a.particles,
+        detection=a.detection,
     )
     print_report(out)
 

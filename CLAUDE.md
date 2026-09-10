@@ -581,5 +581,13 @@ zero when a simulated polygon degenerates.
   described as corroboration.
 - **`prior_offences` is always 0.** `persist/dossier_db.py` (connector A) is not
   built, so the feedback loop is architected but not closed.
+- **The baseline has one scene, so anomaly scoring runs in global-fallback mode.**
+  CLAUDE.md 5.1 needs >= 15 scenes per cell before local statistics mean anything.
+  `baseline/anomaly.py` accumulates correctly and reports which mode ran; it simply
+  has no history to draw on yet, and says so on every run.
+- **The only checkpoint is a CPU smoke run.** `detection/segmenter.py` works and its
+  output is correct plumbing, but the weights are not meaningful. Attribution refuses
+  to use them by default. Run `notebooks/train_colab.ipynb` for real weights.
 - Not yet built: `ingest/sentinel1.py`, `optical.py`, `environment.py`,
-  `baseline/`, `vessels/match.py`, `persist/`, layer 11 dissemination.
+  `baseline/grid.py` and `build.py` as separate modules (folded into `anomaly.py`),
+  `vessels/tracks.py` and `match.py`, `persist/`, layer 11 dissemination.

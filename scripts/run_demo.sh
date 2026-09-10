@@ -55,7 +55,7 @@ fi
 
 ART="artifacts/${SCENARIO}"
 step=0
-total=6
+total=7
 
 say() { step=$((step+1)); printf '[%d/%d] %-26s %s\n' "$step" "$total" "$1" "$2"; }
 
@@ -90,27 +90,43 @@ else
   say "generate scenario" "reusing existing ${ART} (--regen to rebuild)"
 fi
 
-# ---- 2. attribution -------------------------------------------------------
+# ---- 2. detection ---------------------------------------------------------
+# Real detection when a checkpoint exists, synthetic slick when it does not.
+# Both paths must work; CLAUDE.md build order step 11.
+CKPT="data/models/seg.pt"
+if [[ -f "${CKPT}" ]]; then
+  "$PY" -m samudra.detection.segmenter  --incident "${SCENARIO}" >/dev/null
+  "$PY" -m samudra.detection.polygonize --incident "${SCENARIO}" >/dev/null
+  FOUT=$("$PY" -m samudra.detection.fuse --incident "${SCENARIO}")
+  NPOLY=$(grep -c '^slick-' <<<"$FOUT" || true)
+  REP=$("$PY" -c "import json;print('yes' if json.load(open('artifacts/${SCENARIO}/detection_meta.json'))['representative'] else 'SMOKE-TEST WEIGHTS')" 2>/dev/null || echo "?")
+  say "detect slick" "${NPOLY} polygon(s) from the segmenter; checkpoint: ${REP}"
+else
+  rm -f "${ART}/detected_slicks.geojson" "${ART}/detection_meta.json"
+  say "detect slick" "no checkpoint at ${CKPT} — using the synthetic slick"
+fi
+
+# ---- 3. attribution -------------------------------------------------------
 ATTR=(--incident "${SCENARIO}")
 [[ -n "${HOURS_BACK}" ]] && ATTR+=(--hours-back "${HOURS_BACK}")
 OUT=$("$PY" -m samudra.attribution "${ATTR[@]}")
 FUNNEL=$(sed -n 's/^FUNNEL *//p' <<<"$OUT" | head -1)
 say "attribute" "${FUNNEL}"
 
-# ---- 3. trust -------------------------------------------------------------
+# ---- 4. trust -------------------------------------------------------------
 TRUST=$(sed -n 's/^TRUST *//p' <<<"$OUT" | head -1)
 say "trust and behaviour" "${TRUST}"
 
-# ---- 4. forecast ----------------------------------------------------------
+# ---- 5. forecast ----------------------------------------------------------
 FOUT=$("$PY" -m samudra.impact.forecast --incident "${SCENARIO}")
 IMPACT=$(grep -m1 'COASTLINE IMPACT' <<<"$FOUT" | sed 's/COASTLINE IMPACT: *//')
 say "forecast and impact" "${IMPACT}"
 
-# ---- 5. dossier -----------------------------------------------------------
+# ---- 6. dossier -----------------------------------------------------------
 DOUT=$("$PY" -m samudra.evidence.report --incident "${SCENARIO}")
 say "evidence dossier" "$(sed 's/^written: *//' <<<"$DOUT")"
 
-# ---- 6. audit -------------------------------------------------------------
+# ---- 7. audit -------------------------------------------------------------
 AOUT=$("$PY" -m samudra.evidence.integrity --verify)
 say "chain of custody" "$(grep -m1 'status' <<<"$AOUT" | sed 's/status *: *//')"
 

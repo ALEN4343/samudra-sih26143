@@ -100,7 +100,7 @@ writes them to `ground_truth.json`. **No pipeline module may read that file** �
 enforces it structurally by scanning the source for reads.
 
 ```bash
-.venv/Scripts/python -m pytest -q      # 62 tests
+.venv/Scripts/python -m pytest -q      # 100 tests
 ```
 
 The tests that matter:
@@ -149,9 +149,9 @@ algorithms and data flow. In brief:
 | # | Layer | Module | Status |
 |---|---|---|---|
 | 1 | Data Ingestion | `ingest/` | AIS real (Houston); SAR/optical/env pending |
-| 2 | Preprocessing & Baseline | `baseline/`, `detection/preprocess.py` | pending |
-| 3 | AI Oil-Spill Detection | `detection/` | pending |
-| 4 | Vessel Analysis (CFAR + AIS matching) | `vessels/` | pending |
+| 2 | Preprocessing & Baseline | `baseline/`, `detection/preprocess.py` | **built** |
+| 3 | AI Oil-Spill Detection | `detection/` | **built** (needs a GPU-trained checkpoint) |
+| 4 | Vessel Analysis (CFAR + AIS matching) | `vessels/cfar.py` | **built**; `match.py` pending |
 | 5 | AIS Trust & Behaviour | `trust/` | **built** |
 | 6 | Environment & Drift Model | `attribution/drift.py` | **built** |
 | 6b | Candidate Pruning | `attribution/prune.py` | **built** |
@@ -161,9 +161,20 @@ algorithms and data flow. In brief:
 | 10 | Evidence & Integrity | `evidence/` | **built** |
 | 11 | Dissemination & Alerting | — | pending |
 
-Layer 7 is the differentiator, and it is built and verified. Layers 2–4 currently run on
-the synthetic scene; the real-data path for them is specified in CLAUDE.md sections 5.1–5.3.
-Section 10.3 lists every remaining gap explicitly.
+Layer 7 is the differentiator, and it is built and verified. Section 10.3 of CLAUDE.md
+lists every remaining gap explicitly.
+
+**Detection has a deliberate fallback.** The pipeline uses the segmenter when
+`data/models/seg.pt` exists and falls back to the synthetic slick when it does not, so
+`run_demo.sh` works either way — both paths are verified. It also *refuses* a checkpoint
+whose own metadata marks it non-representative (a CPU smoke run), because silently
+routing the demo through known-bad weights while looking like an upgrade is worse than
+not using them. Override with `--detection always`.
+
+**CFAR** recovers **13 of 13** planted vessels on `demo-001` at the spec's `k=4.5`, with
+4 spurious targets. Raising the grouping threshold from 2 to 5 pixels cut false positives
+from 269 to 4 without losing a single true target; that is a grouping parameter, not the
+detection threshold the spec fixes.
 
 Every module has a CLI entrypoint and writes to `artifacts/<incident_id>/`:
 
