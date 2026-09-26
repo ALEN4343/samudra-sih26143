@@ -1,0 +1,149 @@
+{
+  "observation": {
+    "observation_id": "dropin-eos04_kutch_water_hh",
+    "mode": "REAL_REPLAY",
+    "satellite": "EOS-04",
+    "sensor": "SAR",
+    "product": "E04_SAR_MRS_05JUL2026_186011742641_24220_STUC00ZTD_191_16_DH_D_R_N22565_E069445",
+    "raster_path": "data\\satellite\\incoming\\eos04_kutch_water_hh.tif",
+    "acquired_at": "2026-07-05T01:17:53.956000Z",
+    "acquisition_time_known": true,
+    "processed_at": null,
+    "received_at": "2026-09-25T05:48:41.841441+00:00",
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            69.339541,
+            22.570092
+          ],
+          [
+            69.819789,
+            22.56836
+          ],
+          [
+            69.82063,
+            22.71014
+          ],
+          [
+            69.339889,
+            22.711884
+          ],
+          [
+            69.339541,
+            22.570092
+          ]
+        ]
+      ]
+    },
+    "region": "22.57N-22.71N, 69.34E-69.82E",
+    "resolution_m": 18.0,
+    "pixel_size": [
+      2743,
+      872
+    ],
+    "polarisation": "HH",
+    "band": "C-band",
+    "source": "NRSC Bhoonidhi (ISRO) open data, direct download",
+    "source_url": "https://bhoonidhi.nrsc.gov.in",
+    "licence": "NRSC OpenData - attribution to NRSC/ISRO required",
+    "citation": null,
+    "doi": null,
+    "georeference": "product",
+    "anchor_lat": 22.640121983473136,
+    "anchor_lon": 69.58008553166016,
+    "ground_sample_m": 18.0,
+    "checksum_sha256": "2a778a26c8a5c9502c1f65e1ba0cd03255dde4931e6b34a66ec0e1519ac1bd3b",
+    "provenance_note": "Real EOS-04 (ISRO) C-band SAR from NRSC Bhoonidhi. Pixels are calibrated sigma-nought in dB using the product's own published constant, with the calibration equation confirmed against the product's sigma0/gamma0/beta0 identities and the acquisition timezone confirmed against its published sun elevation. Georeferencing is the product's own UTM grid. The marine AOI is an OPERATOR INPUT, not a product value.",
+    "caveats": [],
+    "pixels_local": true,
+    "size_bytes": null,
+    "download_url": null,
+    "provider": null,
+    "online": null
+  },
+  "georeference": {
+    "mode": "product",
+    "anchor_lat": 22.640121983473136,
+    "anchor_lon": 69.58008553166016,
+    "ground_sample_m": 18.0,
+    "note": "Taken from the product's own transform."
+  },
+  "context_source": {
+    "base_incident": "demo-001",
+    "reference_time": "2026-07-05T01:17:53.956000Z",
+    "reference_time_is_satellite_derived": true,
+    "supplies": [
+      "env.npz (wind + current field)",
+      "ais.parquet (vessel traffic)"
+    ],
+    "note": "Drift needs an environment field and attribution needs AIS, both at the time of acquisition. A chip with no timestamp and no position has neither, so the demo AOI's context is reused. The detection is real; the water it is placed in is declared context."
+  },
+  "inference": {
+    "threshold": 0.8,
+    "device": "cuda",
+    "anomaly_pixel_fraction": 0.00014131049176051131,
+    "mean_confidence_in_mask": 0.8639942407608032,
+    "max_probability": 0.9238852262496948,
+    "stages": [
+      {
+        "stage": "observation received",
+        "ms": 68.3760000000575,
+        "detail": "2743x872 px, absolute radiometry (sigma0 dB)"
+      },
+      {
+        "stage": "preprocessing",
+        "ms": 9.999996564147295e-05,
+        "detail": "clipped to dB ramp [-35, 0], ImageNet normalisation \u2014 identical to training; calibrated sigma0 dB used directly; no per-image stretch applied"
+      },
+      {
+        "stage": "ML inference",
+        "ms": 11739.986999999928,
+        "detail": "DeepLabv3+/ResNet-50 on cuda, threshold 0.80"
+      },
+      {
+        "stage": "anomaly characterisation",
+        "ms": 145.4599999999573,
+        "detail": "1 connected region(s) >= 64 px"
+      }
+    ],
+    "checkpoint_meta": {
+      "arch": "deeplabv3plus_resnet50",
+      "num_classes": 2,
+      "classes": [
+        "background",
+        "oil"
+      ],
+      "input_size": 256,
+      "normalisation": "imagenet",
+      "mask_threshold": 128,
+      "epoch": 7,
+      "val_oil_iou": 0.7145453241564629,
+      "selected_on": "validation split (never test)",
+      "representative": true
+    }
+  },
+  "detections": [
+    {
+      "slick_id": "sat-000",
+      "scene_id": "dropin-eos04_kutch_water_hh",
+      "area_km2": 0.1209449437585722,
+      "perimeter_km": 1.371566731962879,
+      "shape_complexity": 1.1125464494628512,
+      "eccentricity": 0.6614378075712335,
+      "major_axis_deg": 45.222993954829334,
+      "centroid_lat": 22.606519439932043,
+      "centroid_lon": 69.35854781190095,
+      "area_px": 338,
+      "mean_sigma0_db": -16.704504013061523,
+      "contrast_db": 1.6149177551269531,
+      "contrast_note": "Oil damps capillary waves by roughly 5-15 dB. Below about 2 dB a dark feature is more consistent with a wake, a wind shadow or speckle than with a slick.",
+      "cnn_oil_prob": 0.8639942407608032,
+      "confidence": 0.5428148346645136,
+      "threshold": 0.8,
+      "class_label": "OIL-LIKE SURFACE ANOMALY",
+      "checkpoint_representative": true
+    }
+  ]
+}

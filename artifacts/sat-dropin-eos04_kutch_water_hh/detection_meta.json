@@ -1,0 +1,13 @@
+{
+  "source": "satellite_console",
+  "representative": true,
+  "checkpoint": "deeplabv3plus_resnet50",
+  "checkpoint_epoch": 7,
+  "threshold": 0.8,
+  "device": "cuda",
+  "n_regions": 1,
+  "class_label": "OIL-LIKE SURFACE ANOMALY",
+  "class_caveat": "SAR measures surface roughness. Oil, biogenic slicks, low-wind cells, rain cells and wind shadows all darken it. This is an anomaly consistent with oil, not a confirmed oil detection.",
+  "ground_truth_used": false,
+  "ground_truth_note": "No label source is on the inference path. The mask came from the model's output on the image's pixels."
+}

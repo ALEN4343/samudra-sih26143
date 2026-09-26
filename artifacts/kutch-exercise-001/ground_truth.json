@@ -1,0 +1,276 @@
+{
+  "_warning": "VERIFICATION ONLY. No pipeline module may read this file.",
+  "scenario_id": "kutch-exercise-001",
+  "exercise": true,
+  "banner": "EXERCISE \u2014 SIMULATED DISCHARGE. The SAR scene and every vessel position are real (NRSC EOS-04). The discharge, the vessel identities and the environment field are simulated. No real vessel is accused of anything.",
+  "seed": 20260705,
+  "culprit_mmsi": 563544647,
+  "culprit_name": "SAGAR HORIZON",
+  "culprit_type": "Chemical Tanker",
+  "culprit_cfar_det_id": "cfar-0106",
+  "true_release_at": "2026-07-04T18:10:53.956000+00:00",
+  "true_release_lat": 23.203145301169158,
+  "true_release_lon": 68.44160125992886,
+  "release_duration_min": 40.0,
+  "acquisition_at": "2026-07-05T01:17:53.956000+00:00",
+  "aoi_bounds": [
+    68.440652,
+    21.595385,
+    70.28892,
+    23.290599
+  ],
+  "slick_area_km2": 63.953,
+  "slick_age_hours": 7.116666666666666,
+  "real": {
+    "scene": "data\\satellite\\incoming\\eos04_kutch_water_hh.tif",
+    "scene_source": "NRSC Bhoonidhi EOS-04 L2B ARD, HH",
+    "acquisition_time": "product value, timezone verified against sun elevation",
+    "vessel_positions": "195 CFAR detections from the real pixels"
+  },
+  "simulated": [
+    "the discharge",
+    "vessel identities and tracks",
+    "wind and current field",
+    "decoy vessels"
+  ],
+  "decoys": [
+    {
+      "mmsi": 538690143,
+      "vessel_name": "SILVER MERCHANT",
+      "imo": 9730422.0,
+      "vessel_type": "Bulk Carrier",
+      "length_m": 173,
+      "flag": "MH",
+      "time_offset_h": -1.16,
+      "course_offset_deg": -69.3,
+      "lateral_offset_km": 1.87
+    },
+    {
+      "mmsi": 249999747,
+      "vessel_name": "GLOBAL MARINER",
+      "imo": 9459425.0,
+      "vessel_type": "Chemical Tanker",
+      "length_m": 134,
+      "flag": "MT",
+      "time_offset_h": 1.68,
+      "course_offset_deg": 90.6,
+      "lateral_offset_km": 3.23
+    },
+    {
+      "mmsi": 470952987,
+      "vessel_name": "CRYSTAL EXPRESS",
+      "imo": 9309239.0,
+      "vessel_type": "Chemical Tanker",
+      "length_m": 138,
+      "flag": "AE",
+      "time_offset_h": -1.95,
+      "course_offset_deg": -45.0,
+      "lateral_offset_km": 1.62
+    },
+    {
+      "mmsi": 538826554,
+      "vessel_name": "GULF TRADER",
+      "imo": 9026314.0,
+      "vessel_type": "Chemical Tanker",
+      "length_m": 103,
+      "flag": "MH",
+      "time_offset_h": 1.43,
+      "course_offset_deg": 63.7,
+      "lateral_offset_km": 3.9
+    },
+    {
+      "mmsi": 352730915,
+      "vessel_name": "GULF PIONEER",
+      "imo": 9176723.0,
+      "vessel_type": "Bulk Carrier",
+      "length_m": 141,
+      "flag": "PA",
+      "time_offset_h": -1.99,
+      "course_offset_deg": -88.1,
+      "lateral_offset_km": 2.24
+    },
+    {
+      "mmsi": 419798376,
+      "vessel_name": "EASTERN CARRIER",
+      "imo": 9907271.0,
+      "vessel_type": "Crude Oil Tanker",
+      "length_m": 170,
+      "flag": "IN",
+      "time_offset_h": 1.34,
+      "course_offset_deg": 73.3,
+      "lateral_offset_km": 2.1
+    },
+    {
+      "mmsi": 352717977,
+      "vessel_name": "PACIFIC GUARDIAN",
+      "imo": 9030178.0,
+      "vessel_type": "Tug",
+      "length_m": 99,
+      "flag": "PA",
+      "time_offset_h": -0.83,
+      "course_offset_deg": -56.8,
+      "lateral_offset_km": 3.88
+    },
+    {
+      "mmsi": 538877431,
+      "vessel_name": "CRYSTAL GUARDIAN",
+      "imo": 9352065.0,
+      "vessel_type": "Chemical Tanker",
+      "length_m": 101,
+      "flag": "MH",
+      "time_offset_h": 1.46,
+      "course_offset_deg": 76.7,
+      "lateral_offset_km": 2.48
+    },
+    {
+      "mmsi": 419137344,
+      "vessel_name": "EASTERN PIONEER",
+      "imo": 9666912.0,
+      "vessel_type": "General Cargo",
+      "length_m": 134,
+      "flag": "IN",
+      "time_offset_h": -0.93,
+      "course_offset_deg": -92.2,
+      "lateral_offset_km": 1.64
+    },
+    {
+      "mmsi": 419601816,
+      "vessel_name": "DESERT HORIZON",
+      "imo": 9921290.0,
+      "vessel_type": "Crude Oil Tanker",
+      "length_m": 200,
+      "flag": "IN",
+      "time_offset_h": 0.98,
+      "course_offset_deg": 101.8,
+      "lateral_offset_km": 3.26
+    },
+    {
+      "mmsi": 352323435,
+      "vessel_name": "MARITIME TRIUMPH",
+      "imo": 9253911.0,
+      "vessel_type": "Bulk Carrier",
+      "length_m": 207,
+      "flag": "PA",
+      "time_offset_h": -1.01,
+      "course_offset_deg": -58.7,
+      "lateral_offset_km": 1.65
+    },
+    {
+      "mmsi": 419372404,
+      "vessel_name": "STAR CARRIER",
+      "imo": 9132726.0,
+      "vessel_type": "Bulk Carrier",
+      "length_m": 110,
+      "flag": "IN",
+      "time_offset_h": 0.95,
+      "course_offset_deg": 96.0,
+      "lateral_offset_km": 2.4
+    },
+    {
+      "mmsi": 419632469,
+      "vessel_name": "CRYSTAL PIONEER",
+      "imo": 9995675.0,
+      "vessel_type": "Bulk Carrier",
+      "length_m": 149,
+      "flag": "IN",
+      "time_offset_h": -0.94,
+      "course_offset_deg": -51.4,
+      "lateral_offset_km": 1.51
+    },
+    {
+      "mmsi": 538509087,
+      "vessel_name": "OCEAN SPIRIT",
+      "imo": 9462992.0,
+      "vessel_type": "Crude Oil Tanker",
+      "length_m": 184,
+      "flag": "MH",
+      "time_offset_h": 0.95,
+      "course_offset_deg": 56.9,
+      "lateral_offset_km": 1.63
+    },
+    {
+      "mmsi": 636646609,
+      "vessel_name": "NORTHERN LEGACY",
+      "imo": 9627794.0,
+      "vessel_type": "Bulk Carrier",
+      "length_m": 104,
+      "flag": "LR",
+      "time_offset_h": -1.55,
+      "course_offset_deg": -105.0,
+      "lateral_offset_km": 3.54
+    },
+    {
+      "mmsi": 419256452,
+      "vessel_name": "ARABIAN SPIRIT",
+      "imo": 9187296.0,
+      "vessel_type": "Bulk Carrier",
+      "length_m": 172,
+      "flag": "IN",
+      "time_offset_h": 1.8,
+      "course_offset_deg": 75.2,
+      "lateral_offset_km": 3.58
+    }
+  ],
+  "decoy_mmsis": [
+    538690143,
+    249999747,
+    470952987,
+    538826554,
+    352730915,
+    419798376,
+    352717977,
+    538877431,
+    419137344,
+    419601816,
+    352323435,
+    419372404,
+    419632469,
+    538509087,
+    636646609,
+    419256452
+  ],
+  "ais_manifest": {
+    "real": {
+      "source": "vessel positions, lengths and orientations measured by samudra.vessels.cfar on real EOS-04 (ISRO) pixels",
+      "cfar_targets": 195
+    },
+    "motion": {
+      "method": "declared fraction, assigned at random",
+      "declared_fraction": 0.15,
+      "stopped": 29,
+      "underway": 166,
+      "spacing_test": {
+        "ran": true,
+        "nn_km_p25": 0.58,
+        "nn_km_p50": 1.04,
+        "nn_km_p95": 2.09,
+        "nn_km_max": 2.74,
+        "bimodal": false,
+        "conclusion": "Spacing is unimodal \u2014 the real positions do NOT separate anchored from underway traffic, so this split is declared, not inferred. It is synthetic like the rest of the tracks."
+      }
+    },
+    "synthetic": {
+      "what": [
+        "mmsi",
+        "vessel_name",
+        "imo",
+        "flag",
+        "vessel_type",
+        "course and speed history",
+        "which vessels broadcast"
+      ],
+      "vessels_broadcasting": 152,
+      "dark_vessels": 43,
+      "phantom_vessels": 4,
+      "ais_sar_offset_m_sigma": 90.0,
+      "phantom_clearance_km": 2.4,
+      "phantoms_requested": 4
+    },
+    "expected_classifications": {
+      "MATCHED": 152,
+      "DARK": 43,
+      "PHANTOM": 4,
+      "note": "Expected under CLAUDE.md 5.3's 2 km matching gate. These are what this generator planted, not what trust/score.py found \u2014 comparing the two is the test."
+    }
+  }
+}

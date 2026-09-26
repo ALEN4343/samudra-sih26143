@@ -1,0 +1,2255 @@
+{
+  "249297496": {
+    "mmsi": 249297496,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "249408789": {
+    "mmsi": 249408789,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "249507484": {
+    "mmsi": 249507484,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "249640781": {
+    "mmsi": 249640781,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "249766317": {
+    "mmsi": 249766317,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "249842657": {
+    "mmsi": 249842657,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "249885394": {
+    "mmsi": 249885394,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "249897645": {
+    "mmsi": 249897645,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "249956424": {
+    "mmsi": 249956424,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "249981048": {
+    "mmsi": 249981048,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "249999747": {
+    "mmsi": 249999747,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "352152103": {
+    "mmsi": 352152103,
+    "score": 0.97,
+    "classification": "MATCHED",
+    "trust_flags": [
+      {
+        "code": "UNKNOWN_MID",
+        "severity": "INFO",
+        "detail": "MMSI prefix 352 not in MID register",
+        "at": null,
+        "lat": null,
+        "lon": null
+      }
+    ],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "352226960": {
+    "mmsi": 352226960,
+    "score": 0.97,
+    "classification": "MATCHED",
+    "trust_flags": [
+      {
+        "code": "UNKNOWN_MID",
+        "severity": "INFO",
+        "detail": "MMSI prefix 352 not in MID register",
+        "at": null,
+        "lat": null,
+        "lon": null
+      }
+    ],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "352314807": {
+    "mmsi": 352314807,
+    "score": 0.97,
+    "classification": "MATCHED",
+    "trust_flags": [
+      {
+        "code": "UNKNOWN_MID",
+        "severity": "INFO",
+        "detail": "MMSI prefix 352 not in MID register",
+        "at": null,
+        "lat": null,
+        "lon": null
+      }
+    ],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "352323435": {
+    "mmsi": 352323435,
+    "score": 0.97,
+    "classification": "MATCHED",
+    "trust_flags": [
+      {
+        "code": "UNKNOWN_MID",
+        "severity": "INFO",
+        "detail": "MMSI prefix 352 not in MID register",
+        "at": null,
+        "lat": null,
+        "lon": null
+      }
+    ],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "352334698": {
+    "mmsi": 352334698,
+    "score": 0.97,
+    "classification": "MATCHED",
+    "trust_flags": [
+      {
+        "code": "UNKNOWN_MID",
+        "severity": "INFO",
+        "detail": "MMSI prefix 352 not in MID register",
+        "at": null,
+        "lat": null,
+        "lon": null
+      }
+    ],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "352379309": {
+    "mmsi": 352379309,
+    "score": 0.97,
+    "classification": "MATCHED",
+    "trust_flags": [
+      {
+        "code": "UNKNOWN_MID",
+        "severity": "INFO",
+        "detail": "MMSI prefix 352 not in MID register",
+        "at": null,
+        "lat": null,
+        "lon": null
+      }
+    ],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "352380145": {
+    "mmsi": 352380145,
+    "score": 0.97,
+    "classification": "MATCHED",
+    "trust_flags": [
+      {
+        "code": "UNKNOWN_MID",
+        "severity": "INFO",
+        "detail": "MMSI prefix 352 not in MID register",
+        "at": null,
+        "lat": null,
+        "lon": null
+      }
+    ],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "352397008": {
+    "mmsi": 352397008,
+    "score": 0.97,
+    "classification": "MATCHED",
+    "trust_flags": [
+      {
+        "code": "UNKNOWN_MID",
+        "severity": "INFO",
+        "detail": "MMSI prefix 352 not in MID register",
+        "at": null,
+        "lat": null,
+        "lon": null
+      }
+    ],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "352466418": {
+    "mmsi": 352466418,
+    "score": 0.97,
+    "classification": "MATCHED",
+    "trust_flags": [
+      {
+        "code": "UNKNOWN_MID",
+        "severity": "INFO",
+        "detail": "MMSI prefix 352 not in MID register",
+        "at": null,
+        "lat": null,
+        "lon": null
+      }
+    ],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "352472623": {
+    "mmsi": 352472623,
+    "score": 0.97,
+    "classification": "MATCHED",
+    "trust_flags": [
+      {
+        "code": "UNKNOWN_MID",
+        "severity": "INFO",
+        "detail": "MMSI prefix 352 not in MID register",
+        "at": null,
+        "lat": null,
+        "lon": null
+      }
+    ],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "352549000": {
+    "mmsi": 352549000,
+    "score": 0.97,
+    "classification": "MATCHED",
+    "trust_flags": [
+      {
+        "code": "UNKNOWN_MID",
+        "severity": "INFO",
+        "detail": "MMSI prefix 352 not in MID register",
+        "at": null,
+        "lat": null,
+        "lon": null
+      }
+    ],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "352554401": {
+    "mmsi": 352554401,
+    "score": 0.97,
+    "classification": "MATCHED",
+    "trust_flags": [
+      {
+        "code": "UNKNOWN_MID",
+        "severity": "INFO",
+        "detail": "MMSI prefix 352 not in MID register",
+        "at": null,
+        "lat": null,
+        "lon": null
+      }
+    ],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "352572569": {
+    "mmsi": 352572569,
+    "score": 0.97,
+    "classification": "MATCHED",
+    "trust_flags": [
+      {
+        "code": "UNKNOWN_MID",
+        "severity": "INFO",
+        "detail": "MMSI prefix 352 not in MID register",
+        "at": null,
+        "lat": null,
+        "lon": null
+      }
+    ],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "352717977": {
+    "mmsi": 352717977,
+    "score": 0.97,
+    "classification": "MATCHED",
+    "trust_flags": [
+      {
+        "code": "UNKNOWN_MID",
+        "severity": "INFO",
+        "detail": "MMSI prefix 352 not in MID register",
+        "at": null,
+        "lat": null,
+        "lon": null
+      }
+    ],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "352730915": {
+    "mmsi": 352730915,
+    "score": 0.97,
+    "classification": "MATCHED",
+    "trust_flags": [
+      {
+        "code": "UNKNOWN_MID",
+        "severity": "INFO",
+        "detail": "MMSI prefix 352 not in MID register",
+        "at": null,
+        "lat": null,
+        "lon": null
+      }
+    ],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "352742472": {
+    "mmsi": 352742472,
+    "score": 0.97,
+    "classification": "MATCHED",
+    "trust_flags": [
+      {
+        "code": "UNKNOWN_MID",
+        "severity": "INFO",
+        "detail": "MMSI prefix 352 not in MID register",
+        "at": null,
+        "lat": null,
+        "lon": null
+      }
+    ],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "352781203": {
+    "mmsi": 352781203,
+    "score": 0.97,
+    "classification": "MATCHED",
+    "trust_flags": [
+      {
+        "code": "UNKNOWN_MID",
+        "severity": "INFO",
+        "detail": "MMSI prefix 352 not in MID register",
+        "at": null,
+        "lat": null,
+        "lon": null
+      }
+    ],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "352824938": {
+    "mmsi": 352824938,
+    "score": 0.97,
+    "classification": "MATCHED",
+    "trust_flags": [
+      {
+        "code": "UNKNOWN_MID",
+        "severity": "INFO",
+        "detail": "MMSI prefix 352 not in MID register",
+        "at": null,
+        "lat": null,
+        "lon": null
+      }
+    ],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "352869194": {
+    "mmsi": 352869194,
+    "score": 0.97,
+    "classification": "MATCHED",
+    "trust_flags": [
+      {
+        "code": "UNKNOWN_MID",
+        "severity": "INFO",
+        "detail": "MMSI prefix 352 not in MID register",
+        "at": null,
+        "lat": null,
+        "lon": null
+      }
+    ],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "352872498": {
+    "mmsi": 352872498,
+    "score": 0.97,
+    "classification": "MATCHED",
+    "trust_flags": [
+      {
+        "code": "UNKNOWN_MID",
+        "severity": "INFO",
+        "detail": "MMSI prefix 352 not in MID register",
+        "at": null,
+        "lat": null,
+        "lon": null
+      }
+    ],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "352984229": {
+    "mmsi": 352984229,
+    "score": 0.97,
+    "classification": "MATCHED",
+    "trust_flags": [
+      {
+        "code": "UNKNOWN_MID",
+        "severity": "INFO",
+        "detail": "MMSI prefix 352 not in MID register",
+        "at": null,
+        "lat": null,
+        "lon": null
+      }
+    ],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419100381": {
+    "mmsi": 419100381,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419109335": {
+    "mmsi": 419109335,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419111457": {
+    "mmsi": 419111457,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419119964": {
+    "mmsi": 419119964,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419137344": {
+    "mmsi": 419137344,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419138612": {
+    "mmsi": 419138612,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419143499": {
+    "mmsi": 419143499,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419152941": {
+    "mmsi": 419152941,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419163959": {
+    "mmsi": 419163959,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419173132": {
+    "mmsi": 419173132,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419191268": {
+    "mmsi": 419191268,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419204009": {
+    "mmsi": 419204009,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419207145": {
+    "mmsi": 419207145,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419245125": {
+    "mmsi": 419245125,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419253050": {
+    "mmsi": 419253050,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419256452": {
+    "mmsi": 419256452,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419261351": {
+    "mmsi": 419261351,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419268644": {
+    "mmsi": 419268644,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419269105": {
+    "mmsi": 419269105,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419282549": {
+    "mmsi": 419282549,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419315996": {
+    "mmsi": 419315996,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419323773": {
+    "mmsi": 419323773,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419348680": {
+    "mmsi": 419348680,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419359240": {
+    "mmsi": 419359240,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419364779": {
+    "mmsi": 419364779,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419372404": {
+    "mmsi": 419372404,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419418023": {
+    "mmsi": 419418023,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419421535": {
+    "mmsi": 419421535,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419431623": {
+    "mmsi": 419431623,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419432020": {
+    "mmsi": 419432020,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419445618": {
+    "mmsi": 419445618,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419452909": {
+    "mmsi": 419452909,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419480315": {
+    "mmsi": 419480315,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419486216": {
+    "mmsi": 419486216,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419535876": {
+    "mmsi": 419535876,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419542342": {
+    "mmsi": 419542342,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419587752": {
+    "mmsi": 419587752,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419599918": {
+    "mmsi": 419599918,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419601816": {
+    "mmsi": 419601816,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419614998": {
+    "mmsi": 419614998,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419632469": {
+    "mmsi": 419632469,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419637836": {
+    "mmsi": 419637836,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419643253": {
+    "mmsi": 419643253,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419661277": {
+    "mmsi": 419661277,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419663660": {
+    "mmsi": 419663660,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419664180": {
+    "mmsi": 419664180,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419702281": {
+    "mmsi": 419702281,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419752550": {
+    "mmsi": 419752550,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419757721": {
+    "mmsi": 419757721,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419776934": {
+    "mmsi": 419776934,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419787628": {
+    "mmsi": 419787628,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419793149": {
+    "mmsi": 419793149,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419798376": {
+    "mmsi": 419798376,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419824996": {
+    "mmsi": 419824996,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419857290": {
+    "mmsi": 419857290,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419871243": {
+    "mmsi": 419871243,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419874028": {
+    "mmsi": 419874028,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419913662": {
+    "mmsi": 419913662,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419932368": {
+    "mmsi": 419932368,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419987484": {
+    "mmsi": 419987484,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419989353": {
+    "mmsi": 419989353,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "470117699": {
+    "mmsi": 470117699,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "470280607": {
+    "mmsi": 470280607,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "470459271": {
+    "mmsi": 470459271,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "470469294": {
+    "mmsi": 470469294,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "470555897": {
+    "mmsi": 470555897,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "470793777": {
+    "mmsi": 470793777,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "470952987": {
+    "mmsi": 470952987,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "470962276": {
+    "mmsi": 470962276,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "477342597": {
+    "mmsi": 477342597,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "477376152": {
+    "mmsi": 477376152,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "477387809": {
+    "mmsi": 477387809,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "477433696": {
+    "mmsi": 477433696,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "477479180": {
+    "mmsi": 477479180,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "477487160": {
+    "mmsi": 477487160,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "477575838": {
+    "mmsi": 477575838,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "477594348": {
+    "mmsi": 477594348,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "477644055": {
+    "mmsi": 477644055,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "477645135": {
+    "mmsi": 477645135,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "477796992": {
+    "mmsi": 477796992,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "477835481": {
+    "mmsi": 477835481,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "477865270": {
+    "mmsi": 477865270,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "477918355": {
+    "mmsi": 477918355,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "477963008": {
+    "mmsi": 477963008,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "538115506": {
+    "mmsi": 538115506,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "538116062": {
+    "mmsi": 538116062,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "538203217": {
+    "mmsi": 538203217,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "538256706": {
+    "mmsi": 538256706,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "538309669": {
+    "mmsi": 538309669,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "538329360": {
+    "mmsi": 538329360,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "538329487": {
+    "mmsi": 538329487,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "538386121": {
+    "mmsi": 538386121,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "538399599": {
+    "mmsi": 538399599,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "538509087": {
+    "mmsi": 538509087,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "538513807": {
+    "mmsi": 538513807,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "538561214": {
+    "mmsi": 538561214,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "538663041": {
+    "mmsi": 538663041,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "538690143": {
+    "mmsi": 538690143,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "538726082": {
+    "mmsi": 538726082,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "538771399": {
+    "mmsi": 538771399,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "538789022": {
+    "mmsi": 538789022,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "538803916": {
+    "mmsi": 538803916,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "538803980": {
+    "mmsi": 538803980,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "538826554": {
+    "mmsi": 538826554,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "538840400": {
+    "mmsi": 538840400,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "538872302": {
+    "mmsi": 538872302,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "538877431": {
+    "mmsi": 538877431,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "538938004": {
+    "mmsi": 538938004,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "563126478": {
+    "mmsi": 563126478,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "563465702": {
+    "mmsi": 563465702,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "563544647": {
+    "mmsi": 563544647,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "563554147": {
+    "mmsi": 563554147,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "563778564": {
+    "mmsi": 563778564,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "636132349": {
+    "mmsi": 636132349,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "636199382": {
+    "mmsi": 636199382,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "636224092": {
+    "mmsi": 636224092,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "636261744": {
+    "mmsi": 636261744,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "636293347": {
+    "mmsi": 636293347,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "636303405": {
+    "mmsi": 636303405,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "636349031": {
+    "mmsi": 636349031,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "636364480": {
+    "mmsi": 636364480,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "636372758": {
+    "mmsi": 636372758,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "636403381": {
+    "mmsi": 636403381,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "636435184": {
+    "mmsi": 636435184,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "636451076": {
+    "mmsi": 636451076,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "636467375": {
+    "mmsi": 636467375,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "636471092": {
+    "mmsi": 636471092,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "636528074": {
+    "mmsi": 636528074,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "636530340": {
+    "mmsi": 636530340,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "636563070": {
+    "mmsi": 636563070,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "636596955": {
+    "mmsi": 636596955,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "636646609": {
+    "mmsi": 636646609,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "636706733": {
+    "mmsi": 636706733,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "636774231": {
+    "mmsi": 636774231,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "636782493": {
+    "mmsi": 636782493,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "636872865": {
+    "mmsi": 636872865,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "636886149": {
+    "mmsi": 636886149,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "636894458": {
+    "mmsi": 636894458,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "636960552": {
+    "mmsi": 636960552,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "636961065": {
+    "mmsi": 636961065,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  }
+}

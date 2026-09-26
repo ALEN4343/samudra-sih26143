@@ -1,0 +1,123 @@
+{
+  "alert_id": "SAMUDRA-kutch-exercise-001-20260705T0117Z",
+  "incident_id": "kutch-exercise-001",
+  "issued_at": "2026-09-26T15:14:47.782971+00:00",
+  "acquisition_at": "2026-07-05T01:17:53.956000+00:00",
+  "severity": "ALERT",
+  "nosdcp_tier": 2,
+  "tier_label": "TIER II \u2014 regional",
+  "tier_reasons": [
+    "slick area 64.0 km\u00b2 \u2265 25 km\u00b2",
+    "shoreline contact forecast in 50 h"
+  ],
+  "position": {
+    "lat": 23.068702929214687,
+    "lon": 68.57418526525775,
+    "dms": "23\u00b004.12'N 68\u00b034.45'E"
+  },
+  "slick": {
+    "area_km2": 63.952686419496295,
+    "major_axis_deg": 121.24678030557973,
+    "age_hours": 6.75
+  },
+  "shore": {
+    "contact_forecast": true,
+    "eta_hours": 50.397132328611114,
+    "affected_shoreline_km": 16.636592339484952,
+    "closest_approach_km": 0.0
+  },
+  "top_suspect": {
+    "mmsi": 563544647,
+    "vessel_name": "SAGAR HORIZON",
+    "vessel_type": "Chemical Tanker",
+    "flag": "SG",
+    "posterior": 0.5834129582082571,
+    "classification": "MATCHED"
+  },
+  "recipients": [
+    {
+      "id": "CGDHQ-16",
+      "name": "CGDHQ-16 Jakhau",
+      "role": "DISTRICT_HQ",
+      "region": "North West",
+      "lat": 23.222,
+      "lon": 68.638,
+      "mrcc": false,
+      "nosdcp_tier_min": 1,
+      "distance_km": 18.3,
+      "bearing_deg": 201.0,
+      "action": "RESPONSE \u2014 nearest unit, pollution response team"
+    },
+    {
+      "id": "CGS-OKHA",
+      "name": "CG Station Okha",
+      "role": "STATION",
+      "region": "North West",
+      "lat": 22.468,
+      "lon": 69.071,
+      "mrcc": false,
+      "nosdcp_tier_min": 1,
+      "distance_km": 84.0,
+      "bearing_deg": 322.8,
+      "action": "RESPONSE \u2014 nearest unit, pollution response team"
+    },
+    {
+      "id": "CGS-VADINAR",
+      "name": "CG Station Vadinar",
+      "role": "STATION",
+      "region": "North West",
+      "lat": 22.35,
+      "lon": 69.723,
+      "mrcc": false,
+      "nosdcp_tier_min": 1,
+      "distance_km": 142.4,
+      "bearing_deg": 304.4,
+      "action": "RESPONSE \u2014 nearest unit, pollution response team"
+    },
+    {
+      "id": "CGDHQ-01",
+      "name": "CGDHQ-1 Porbandar",
+      "role": "DISTRICT_HQ",
+      "region": "North West",
+      "lat": 21.641,
+      "lon": 69.609,
+      "mrcc": false,
+      "nosdcp_tier_min": 1,
+      "distance_km": 191.1,
+      "bearing_deg": 326.4,
+      "action": "RESPONSE \u2014 nearest unit, pollution response team"
+    },
+    {
+      "id": "CGRHQ-NW",
+      "name": "Coast Guard Region (North West), Gandhinagar",
+      "role": "REGION_HQ",
+      "region": "North West",
+      "lat": 23.216,
+      "lon": 72.65,
+      "mrcc": false,
+      "nosdcp_tier_min": 2,
+      "distance_km": 417.0,
+      "bearing_deg": 268.6,
+      "action": "COORDINATION \u2014 MRCC / regional response coordination"
+    },
+    {
+      "id": "CGRHQ-W",
+      "name": "Coast Guard Region (West), Mumbai",
+      "role": "REGION_HQ",
+      "region": "West",
+      "lat": 18.925,
+      "lon": 72.836,
+      "mrcc": true,
+      "nosdcp_tier_min": 2,
+      "distance_km": 638.7,
+      "bearing_deg": 316.9,
+      "action": "COORDINATION \u2014 MRCC / regional response coordination"
+    }
+  ],
+  "message": "PRIORITY ALERT  //  MARPOL ANNEX I \u2014 SUSPECTED OPERATIONAL DISCHARGE\nNOS-DCP TIER II \u2014 REGIONAL\n\nTO   : CGDHQ-16 Jakhau, CG Station Okha, CG Station Vadinar, CGDHQ-1 Porbandar, Coast Guard Region (North West), Gandhinagar, Coast Guard Region (West), Mumbai\nFROM : SAMUDRA attribution engine \u2014 incident kutch-exercise-001\nDTG  : 261514Z SEP 2026\n\n1. POSITION AND EXTENT\n   Slick centre 23\u00b004.12'N 68\u00b034.45'E\n   Area 64.0 km2, long axis 121 deg true, eccentricity 0.946\n   Detected on SAR scene acquired 05 Jul 2026 0117Z\n\n2. CONDITIONS AT ACQUISITION\n   Wind 5.7 m/s from 98 deg \u2014 detection wind gate PASS\n   Surface current 0.21 m/s setting 196 deg\n   Estimated slick age 6.8 h (6.2\u20137.2 h)\n\n3. FORECAST\n   SHORELINE CONTACT FORECAST in 50 h, approx 16.6 km of coast affected.\n\n4. ATTRIBUTION\n   Highest-ranked candidate: SAGAR HORIZON (MMSI 563544647, flag SG, Chemical Tanker)\n   Posterior 0.583 over 3 ranked candidates.\n   THIS IS A RANKED LIKELIHOOD, NOT AN ACCUSATION. Full reasoning, hypothesis geometry and\n   hash-chained evidence are in the attached dossier.\n\n5. REQUESTED ACTION\n   Nearest unit: verify by surface or air sortie, photograph and sample if slick is confirmed.\n   Regional HQ: assess response tier and mobilise pollution response equipment as required.\n\nATTACHMENT: dossier_kutch-exercise-001.pdf (evidence dossier, SHA-256 hash-chained)\n\n// SAMUDRA is a decision-support system. Operational action remains the responsibility of the\n// coordinating authority. //",
+  "attachment": "dossier_kutch-exercise-001.pdf",
+  "legal_basis": "MARPOL 73/78 Annex I; Merchant Shipping Act 1958 Part XB; response under NOS-DCP with the Indian Coast Guard as Central Coordinating Authority.",
+  "transmitted": false,
+  "transmission_note": "SAMUDRA composes and addresses the alert but does not transmit it. No message has left this machine. Wiring a transport requires real, verified recipient addresses and an authority to send, which is a deployment decision outside this system.",
+  "station_source": "Compiled from publicly listed Indian Coast Guard establishment locations. Positions are the station's shore location to the nearest ~1 km and are adequate for nearest-unit selection and bearing/range display. VERIFY against the current ICG establishment list before any operational use."
+}

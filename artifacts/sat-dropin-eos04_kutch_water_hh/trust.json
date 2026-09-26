@@ -1,0 +1,677 @@
+{
+  "240326028": {
+    "mmsi": 240326028,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "240462904": {
+    "mmsi": 240462904,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "240728765": {
+    "mmsi": 240728765,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "240866709": {
+    "mmsi": 240866709,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "249115555": {
+    "mmsi": 249115555,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "249764198": {
+    "mmsi": 249764198,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "371167719": {
+    "mmsi": 371167719,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "371494057": {
+    "mmsi": 371494057,
+    "score": 0.88,
+    "classification": "MATCHED",
+    "trust_flags": [
+      {
+        "code": "AIS_GAP",
+        "severity": "WARN",
+        "detail": "silent for 69 minutes",
+        "at": "2026-01-13T22:21:00+00:00",
+        "lat": 15.962898784764887,
+        "lon": 69.93127538507383
+      }
+    ],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 0.9,
+      "behaviour_prior": 1.35,
+      "proximity_prior": 1.0
+    }
+  },
+  "371861805": {
+    "mmsi": 371861805,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "412204879": {
+    "mmsi": 412204879,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "412254426": {
+    "mmsi": 412254426,
+    "score": 0.88,
+    "classification": "MATCHED",
+    "trust_flags": [
+      {
+        "code": "AIS_GAP",
+        "severity": "WARN",
+        "detail": "silent for 42 minutes",
+        "at": "2026-01-14T00:44:00+00:00",
+        "lat": 18.190975278544254,
+        "lon": 68.71136151603709
+      }
+    ],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 0.9,
+      "behaviour_prior": 1.35,
+      "proximity_prior": 1.0
+    }
+  },
+  "412658856": {
+    "mmsi": 412658856,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "412744541": {
+    "mmsi": 412744541,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "412848373": {
+    "mmsi": 412848373,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419233007": {
+    "mmsi": 419233007,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419254301": {
+    "mmsi": 419254301,
+    "score": 0.53,
+    "classification": "IDENTITY_MISMATCH",
+    "trust_flags": [
+      {
+        "code": "SOG_DISAGREEMENT",
+        "severity": "WARN",
+        "detail": "reported 14.4 kn vs 436.4 kn derived from position, on 2 segment(s)",
+        "at": "2026-01-13T15:38:00+00:00",
+        "lat": 16.573810273423966,
+        "lon": 70.44563960336141
+      },
+      {
+        "code": "POSITION_TELEPORT",
+        "severity": "CRITICAL",
+        "detail": "53.9 km in 240 s \u2014 implied 436 kn",
+        "at": "2026-01-13T15:38:00+00:00",
+        "lat": 16.573810273423966,
+        "lon": 70.44563960336141
+      }
+    ],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.3,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419432798": {
+    "mmsi": 419432798,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419495785": {
+    "mmsi": 419495785,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "419961349": {
+    "mmsi": 419961349,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "422659992": {
+    "mmsi": 422659992,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "422885395": {
+    "mmsi": 422885395,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [
+      {
+        "code": "LOITERING",
+        "severity": "WARN",
+        "detail": "0.4 kn average, 0.6 km net displacement over 1.0 h",
+        "at": "2026-01-12T11:45:00+00:00",
+        "lat": 18.317802970049332,
+        "lon": 72.95294630532679
+      },
+      {
+        "code": "SPEED_REDUCTION",
+        "severity": "WARN",
+        "detail": "dropped to 0.4 kn from a 8.4 kn norm for 2.2 h",
+        "at": "2026-01-12T11:05:00+00:00",
+        "lat": 18.314196223492555,
+        "lon": 72.9552167448985
+      },
+      {
+        "code": "COURSE_DEVIATION",
+        "severity": "INFO",
+        "detail": "held 128 deg off its 352 deg prevailing course for 2.2 h",
+        "at": "2026-01-12T11:05:00+00:00",
+        "lat": null,
+        "lon": null
+      }
+    ],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.7249999999999999,
+      "proximity_prior": 1.0
+    }
+  },
+  "422937999": {
+    "mmsi": 422937999,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "461187702": {
+    "mmsi": 461187702,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "461279535": {
+    "mmsi": 461279535,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "463465809": {
+    "mmsi": 463465809,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [
+      {
+        "code": "SPEED_REDUCTION",
+        "severity": "WARN",
+        "detail": "dropped to 3.1 kn from a 7.8 kn norm for 2.4 h",
+        "at": "2026-01-13T02:30:00+00:00",
+        "lat": 19.232216560242406,
+        "lon": 69.96952964691172
+      }
+    ],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.2,
+      "proximity_prior": 1.0
+    }
+  },
+  "463713035": {
+    "mmsi": 463713035,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "470223250": {
+    "mmsi": 470223250,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "470334796": {
+    "mmsi": 470334796,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [
+      {
+        "code": "LOITERING",
+        "severity": "WARN",
+        "detail": "0.4 kn average, 0.6 km net displacement over 1.0 h",
+        "at": "2026-01-13T04:12:00+00:00",
+        "lat": 16.07170177136079,
+        "lon": 70.98418785692091
+      },
+      {
+        "code": "SPEED_REDUCTION",
+        "severity": "WARN",
+        "detail": "dropped to 0.4 kn from a 9.9 kn norm for 2.4 h",
+        "at": "2026-01-13T04:12:00+00:00",
+        "lat": 16.07170177136079,
+        "lon": 70.98418785692091
+      },
+      {
+        "code": "COURSE_DEVIATION",
+        "severity": "INFO",
+        "detail": "held 131 deg off its 335 deg prevailing course for 1.9 h",
+        "at": "2026-01-13T04:12:00+00:00",
+        "lat": null,
+        "lon": null
+      },
+      {
+        "code": "NIGHT_MANOEUVRING",
+        "severity": "INFO",
+        "detail": "46% of the track falls between 20:00 and 03:00 UTC",
+        "at": null,
+        "lat": null,
+        "lon": null
+      }
+    ],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.8975,
+      "proximity_prior": 1.0
+    }
+  },
+  "470360344": {
+    "mmsi": 470360344,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "470389231": {
+    "mmsi": 470389231,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "470831410": {
+    "mmsi": 470831410,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "470881161": {
+    "mmsi": 470881161,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "470961969": {
+    "mmsi": 470961969,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "477373095": {
+    "mmsi": 477373095,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "477521930": {
+    "mmsi": 477521930,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "477863507": {
+    "mmsi": 477863507,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "477896378": {
+    "mmsi": 477896378,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "525218592": {
+    "mmsi": 525218592,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "525422861": {
+    "mmsi": 525422861,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "525993785": {
+    "mmsi": 525993785,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "538179241": {
+    "mmsi": 538179241,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "538268538": {
+    "mmsi": 538268538,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "538579429": {
+    "mmsi": 538579429,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "563549391": {
+    "mmsi": 563549391,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "563645127": {
+    "mmsi": 563645127,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "563717204": {
+    "mmsi": 563717204,
+    "score": 1.0,
+    "classification": "MATCHED",
+    "trust_flags": [],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 1.0,
+      "behaviour_prior": 1.0,
+      "proximity_prior": 1.0
+    }
+  },
+  "636933967": {
+    "mmsi": 636933967,
+    "score": 0.88,
+    "classification": "MATCHED",
+    "trust_flags": [
+      {
+        "code": "AIS_GAP",
+        "severity": "WARN",
+        "detail": "silent for 29 minutes",
+        "at": "2026-01-14T04:06:00+00:00",
+        "lat": 15.399047963007993,
+        "lon": 71.6254112689216
+      }
+    ],
+    "behaviour_flags": [],
+    "priors": {
+      "trust_prior": 0.9,
+      "behaviour_prior": 1.35,
+      "proximity_prior": 1.0
+    }
+  }
+}

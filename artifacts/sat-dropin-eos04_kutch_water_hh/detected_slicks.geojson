@@ -1,0 +1,80 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              69.35881279682204,
+              22.6086690808578
+            ],
+            [
+              69.35617946098432,
+              22.606235828193977
+            ],
+            [
+              69.35617904248058,
+              22.60607322127354
+            ],
+            [
+              69.35687790087863,
+              22.60542123781129
+            ],
+            [
+              69.35810130795663,
+              22.60444286643181
+            ],
+            [
+              69.35827643977922,
+              22.604442475698697
+            ],
+            [
+              69.36020712172338,
+              22.606064233695722
+            ],
+            [
+              69.3609093532963,
+              22.60671308764726
+            ],
+            [
+              69.36090977737133,
+              22.606875694470325
+            ],
+            [
+              69.35898793397928,
+              22.608668689279412
+            ],
+            [
+              69.35881279682204,
+              22.6086690808578
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "slick_id": "sat-000",
+        "scene_id": "dropin-eos04_kutch_water_hh",
+        "area_km2": 0.1209449437585722,
+        "perimeter_km": 1.371566731962879,
+        "shape_complexity": 1.1125464494628512,
+        "eccentricity": 0.6614378075712335,
+        "major_axis_deg": 45.222993954829334,
+        "centroid_lat": 22.606519439932043,
+        "centroid_lon": 69.35854781190095,
+        "area_px": 338,
+        "mean_sigma0_db": -16.704504013061523,
+        "contrast_db": 1.6149177551269531,
+        "contrast_note": "Oil damps capillary waves by roughly 5-15 dB. Below about 2 dB a dark feature is more consistent with a wake, a wind shadow or speckle than with a slick.",
+        "cnn_oil_prob": 0.8639942407608032,
+        "confidence": 0.5428148346645136,
+        "threshold": 0.8,
+        "class_label": "OIL-LIKE SURFACE ANOMALY",
+        "checkpoint_representative": true,
+        "acquisition_at": "2026-07-05T01:17:53.956000Z"
+      }
+    }
+  ]
+}
