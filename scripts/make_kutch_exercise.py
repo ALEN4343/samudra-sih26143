@@ -43,6 +43,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
@@ -51,6 +52,38 @@ EXERCISE_BANNER = (
     "are real (NRSC EOS-04). The discharge, the vessel identities and the "
     "environment field are simulated. No real vessel is accused of anything."
 )
+
+
+def _decoy_identity(rng, used: set) -> dict:
+    """An ordinary vessel identity. Nothing marks it as a decoy.
+
+    A decoy the ranker could recognise would not test anything, so these carry
+    no flag, no naming convention and no type that attribution treats
+    specially — only ground_truth.json knows which they are.
+    """
+    from samudra.synth.ais_from_cfar import MIDS, TYPE_BANDS, _FIRST, _SECOND
+
+    mids = [m for m, _, _ in MIDS]
+    probs = np.array([p for _, _, p in MIDS], dtype=float)
+    probs /= probs.sum()
+    i = int(rng.choice(len(mids), p=probs))
+    mid, flag = mids[i], MIDS[i][1]
+    while True:
+        mmsi = int(mid) * 1_000_000 + int(rng.integers(100_000, 999_999))
+        if mmsi not in used:
+            used.add(mmsi)
+            break
+    length = float(rng.uniform(90, 210))
+    vtype = next((str(rng.choice(n)) for lo, hi, n in TYPE_BANDS
+                  if lo <= length < hi), "Bulk Carrier")
+    return {
+        "mmsi": mmsi,
+        "vessel_name": f"{rng.choice(_FIRST)} {rng.choice(_SECOND)}",
+        "imo": float(rng.integers(9_000_000, 9_999_999)),
+        "vessel_type": vtype,
+        "length_m": round(length),
+        "flag": flag,
+    }
 
 
 def main() -> int:
@@ -65,6 +98,9 @@ def main() -> int:
                     help="how long before acquisition the discharge began")
     ap.add_argument("--release-minutes", type=float, default=40.0,
                     help="duration of the discharge, i.e. length of the line source")
+    ap.add_argument("--decoys", type=int, default=16,
+                    help="near-miss vessels through the same water; "
+                         "0 leaves the ranker nothing to discriminate")
     ap.add_argument("--particles", type=int, default=1400)
     ap.add_argument("--seed", type=int, default=20260705)
     ap.add_argument("--root", default="artifacts")
@@ -226,6 +262,86 @@ def main() -> int:
     release_hours = (acquisition_at - t_start).total_seconds() / 3600.0
     a.release_hours = release_hours
 
+    # ---- 5b. decoys -------------------------------------------------------
+    # Without these the origin envelope held exactly ONE candidate, the
+    # posterior came out 1.000, and a correct answer proved nothing — the
+    # ranker never had to choose. CLAUDE.md 10.2 records the same trap in the
+    # synthetic generator.
+    #
+    # A decoy must be a genuine near-miss, not a strawman: it passes through
+    # the same water in the same window, so pruning CANNOT eliminate it and the
+    # geometry has to. Each one is offset in time and turned off the culprit's
+    # course, which is what the 25% orientation term in 5.5 exists to catch.
+    # They are ordinary vessels in every other respect and carry no marker that
+    # attribution could see.
+    decoy_rows = []
+    decoy_info = []
+    if a.decoys > 0:
+        trk_c = ais[ais["mmsi"] == culprit["mmsi"]].sort_values("t")
+        used_mmsi = set(ais["mmsi"].unique().tolist())
+        step_s = 60
+        for k in range(a.decoys):
+            ident = _decoy_identity(rng, used_mmsi)
+            # Offset in time across the hindcast window, and rotated in course.
+            # A decoy must be separable, or the scenario is unfair rather
+            # than hard. Because these are rotated copies of the culprit's
+            # track pivoted on the release point, a small turn and a small
+            # time offset produce a NEAR-CLONE: same water, same course, same
+            # drift, so the geometric score is a coin flip and the culprit
+            # legitimately loses. Measured at turn>=25 deg / dt +-1.2 h, a
+            # decoy outranked the culprit.
+            #
+            # Minimum separations make each decoy a genuine near-miss: close
+            # enough that pruning cannot remove it, different enough that
+            # orientation and drift CAN. Fixing the scenario, not the scorer —
+            # CLAUDE.md 8 forbids the latter.
+            dt_h = float(rng.uniform(0.75, 2.0)) * (1 if k % 2 else -1)
+            turn = float(rng.uniform(45.0, 110.0)) * (1 if k % 2 else -1)
+            off_km = float(rng.uniform(1.5, 4.0))
+            brg = float(rng.uniform(0, 360))
+
+            base = trk_c.copy()
+            base["t"] = base["t"] + pd.Timedelta(hours=dt_h)
+            lat0 = float(base["lat"].iloc[len(base) // 2])
+            dlat = off_km * math.cos(math.radians(brg)) / 110.574
+            dlon = (off_km * math.sin(math.radians(brg))
+                    / (111.320 * math.cos(math.radians(lat0))))
+            # Rotate about the RELEASE POINT, not the track midpoint. These
+            # tracks run ~250 km over the 14 h window, so pivoting on the
+            # middle swings the release area tens of km away and the decoy
+            # never enters the origin envelope at all — measured, it left the
+            # funnel at 1 candidate. Pivoting here keeps every decoy in the
+            # same water at the same time, which is what makes it a real
+            # near-miss rather than a strawman.
+            pivot = base.iloc[(base["t"] - t_start).abs().argsort().iloc[0]]
+            mlat = float(pivot["lat"])
+            mlon = float(pivot["lon"])
+            th = math.radians(turn)
+            dy = (base["lat"].to_numpy() - mlat) * 110.574
+            dx = ((base["lon"].to_numpy() - mlon) * 111.320
+                  * math.cos(math.radians(mlat)))
+            rx = dx * math.cos(th) - dy * math.sin(th)
+            ry = dx * math.sin(th) + dy * math.cos(th)
+            base["lat"] = mlat + ry / 110.574 + dlat
+            base["lon"] = (mlon + rx / (111.320 * math.cos(math.radians(mlat)))
+                           + dlon)
+            base["cog"] = (base["cog"] + turn) % 360
+            base["heading"] = (base["heading"] + turn) % 360
+            for col, val in ident.items():
+                base[col] = val
+            decoy_rows.append(base)
+            decoy_info.append({**ident, "time_offset_h": round(dt_h, 2),
+                               "course_offset_deg": round(turn, 1),
+                               "lateral_offset_km": round(off_km, 2)})
+
+        ais = pd.concat([ais] + decoy_rows, ignore_index=True)
+        ais = ais.sort_values(["mmsi", "t"]).reset_index(drop=True)
+        print(f"\n  DECOYS        {len(decoy_info)} vessels through the same water")
+        for d in decoy_info:
+            print(f"    {d['vessel_name']:<20} MMSI {d['mmsi']}  "
+                  f"{d['course_offset_deg']:+.0f} deg course, "
+                  f"{d['time_offset_h']:+.1f} h, {d['lateral_offset_km']:.1f} km off")
+
     t_end = t_start + timedelta(minutes=a.release_minutes)
     seg = trk[(trk["t"] >= t_start) & (trk["t"] <= t_end)]
     if len(seg) < 2:
@@ -303,7 +419,9 @@ def main() -> int:
             "vessel_positions": f"{len(targets)} CFAR detections from the real pixels",
         },
         "simulated": ["the discharge", "vessel identities and tracks",
-                      "wind and current field"],
+                      "wind and current field", "decoy vessels"],
+        "decoys": decoy_info,
+        "decoy_mmsis": [d["mmsi"] for d in decoy_info],
         "ais_manifest": {k: manifest[k] for k in
                          ("real", "motion", "synthetic", "expected_classifications")},
     }

@@ -266,10 +266,28 @@ def assess(
             f"({first['expected_hours_to_detection']/24:.1f} days).")
     else:
         out["first_detection"] = None
-        out["summary"] = (
-            "NOT DETECTED before it disperses. This is the gap: at this size "
-            "and these conditions no sensor in the architecture gets a usable "
-            "look in time.")
+        # "Not detected" would overstate it. No sensor is expected to get a
+        # look inside the slick's life, but the satellite arrives at a random
+        # point in its cycle, so a share of discharges IS caught — and that
+        # share is the deterrence number an enforcement case rests on.
+        partial = [s for s in out["sensors"] if s.get("catch_probability")]
+        if partial:
+            best = max(partial, key=lambda s: s["catch_probability"])
+            out["best_effort"] = {
+                "sensor": best["sensor"],
+                "catch_probability": best["catch_probability"],
+                "expected_hours": best["expected_hours_to_detection"],
+            }
+            out["summary"] = (
+                f"No sensor is expected to see it before it disperses. "
+                f"{best['sensor']} still catches "
+                f"{best['catch_probability']:.0%} of discharges this size — "
+                f"revisit is the limit, not sensitivity.")
+        else:
+            out["best_effort"] = None
+            out["summary"] = (
+                "NOT DETECTABLE at this size. No sensor in the architecture "
+                "resolves it at all, at any revisit.")
     return out
 
 

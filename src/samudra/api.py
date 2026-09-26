@@ -48,6 +48,29 @@ def _load_incident(incident_id: str) -> dict:
     return json.loads(f.read_text())
 
 
+@app.get("/api/detectability")
+def detectability(
+    contrast_db: float = 8.0,
+    cloud_fraction: float = 0.5,
+    daylight_fraction: float = 0.5,
+    persistence_hours: float = 24.0,
+) -> dict:
+    """Per-size-class verdict for the three-satellite architecture.
+
+    Answers "where are we lacking" with numbers rather than a claim. EOS-04
+    detection probability is looked up from the MEASURED table produced by
+    scripts/detection_limit.py; cloud, daylight and slick persistence are
+    operator assumptions and are echoed back so a reader can see them.
+    """
+    from samudra.satellite.detectability import compare_size_classes
+
+    return compare_size_classes(
+        contrast_db=contrast_db, cloud_fraction=cloud_fraction,
+        daylight_fraction=daylight_fraction,
+        persistence_hours=persistence_hours,
+    )
+
+
 @app.get("/api/monitor/status")
 def monitor_status() -> dict:
     """What the continuous monitor last did. Reads state; never starts one.

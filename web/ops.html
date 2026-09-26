@@ -193,6 +193,7 @@
     <button data-p="spill">Spill</button>
     <button data-p="drift">Drift</button>
     <button data-p="ais">AIS</button>
+    <button data-p="capability">Capability</button>
     <button data-p="evidence">Evidence</button>
     <button data-p="help">Help</button>
   </div>
@@ -319,6 +320,7 @@
   </div>
 
   <!-- ============ evidence ============ -->
+  <div class="page" id="p_capability"><div class="scrollpage" id="capbody"></div></div>
   <div class="page" id="p_evidence"><div class="scrollpage" id="evidencebody"></div></div>
 
   <!-- ============ help ============ -->
@@ -512,7 +514,7 @@ async function ensureLayer(k){
 }
 
 /* ===================== navigation ================= */
-const PAGES=['dashboard','satellite','spill','drift','ais','evidence','help'];
+const PAGES=['dashboard','satellite','spill','drift','ais','capability','evidence','help'];
 function show(p){
   PAGES.forEach(x=>$('#p_'+x).classList.toggle('on',x===p));
   $$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
@@ -521,6 +523,7 @@ function show(p){
   if(!mapPage) $('#layers').classList.remove('on');
   if(mapPage) moveMapTo('p_'+p);
   if(p==='satellite') initSatellite();
+  if(p==='capability') renderCapability();
   if(p==='evidence') renderEvidence();
   if(p==='help') renderHelp();
   history.replaceState(null,'','#'+p);
@@ -977,6 +980,84 @@ function renderAttribution(att){
 }
 
 /* ===================== evidence & help ================= */
+
+/* ---- Capability: what the three-satellite stack can and cannot see -------
+   The honest answer to "where are we lacking", and the one page that states
+   its own uncertainty. EOS-04 detection probability is MEASURED (planted
+   slicks in real EOS-04 HH ocean, 14 trials per cell). Cloud, daylight and
+   slick persistence are the operator's assumptions and are labelled as such
+   next to every number, because a slider is not an observation. */
+let CAPBUSY=false;
+async function renderCapability(){
+  const body=$('#capbody');
+  if(!body.dataset.built){
+    body.dataset.built='1';
+    body.innerHTML=`
+      <section style="max-width:1000px">
+        <h2>What this architecture can and cannot see</h2>
+        <p class="note">EOS-04 detection is <b>measured</b> &mdash; slicks of known area
+          and contrast planted into real EOS-04 HH ocean and scored by the real
+          checkpoint, 14 trials per cell. Cloud, daylight and how long the slick
+          stays visible are <b>your assumptions</b>, not observations.</p>
+        <div class="card" id="capctl" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px">
+          <label>Cloud cover <b id="o_cloud">50%</b>
+            <input type="range" id="r_cloud" min="0" max="95" step="5" value="50" style="width:100%"></label>
+          <label>Daylight passes <b id="o_day">50%</b>
+            <input type="range" id="r_day" min="10" max="100" step="10" value="50" style="width:100%"></label>
+          <label>Slick stays visible <b id="o_life">24 h</b>
+            <input type="range" id="r_life" min="6" max="72" step="6" value="24" style="width:100%"></label>
+          <label>Oil contrast <b id="o_con">8 dB</b>
+            <input type="range" id="r_con" min="2" max="12" step="1" value="8" style="width:100%"></label>
+        </div>
+      </section>
+      <section style="max-width:1000px" id="capout"></section>`;
+    ['r_cloud','r_day','r_life','r_con'].forEach(id=>
+      $('#'+id).addEventListener('input',capRun));
+  }
+  capRun();
+}
+async function capRun(){
+  const cloud=+$('#r_cloud').value, day=+$('#r_day').value;
+  const life=+$('#r_life').value, con=+$('#r_con').value;
+  $('#o_cloud').textContent=cloud+'%';
+  $('#o_day').textContent=day+'%';
+  $('#o_life').textContent=life+' h';
+  $('#o_con').textContent=con+' dB';
+  if(CAPBUSY) return; CAPBUSY=true;
+  let d=null;
+  try{
+    d=await jget(`/api/detectability?cloud_fraction=${cloud/100}`
+      +`&daylight_fraction=${day/100}&persistence_hours=${life}&contrast_db=${con}`);
+  }catch(e){ CAPBUSY=false; $('#capout').innerHTML='<p class="note">capability service unavailable</p>'; return; }
+  CAPBUSY=false;
+  const ok='#2ea043', warn='#d29922', bad='#6e7681';
+  $('#capout').innerHTML=d.classes.map(c=>{
+    const rows=c.sensors.map(s=>{
+      const col=s.expected_hours_to_detection==null?bad
+        :(s.catches_before_it_disperses?ok:warn);
+      const px=s.pixels_on_target>=1000
+        ? Math.round(s.pixels_on_target).toLocaleString()
+        : s.pixels_on_target.toFixed(1);
+      return `<tr>
+        <td><b>${esc(s.sensor)}</b><div class="note">${esc(s.instrument)}</div></td>
+        <td style="text-align:right">${px} px</td>
+        <td style="color:${col}">${esc(s.verdict)}</td>
+        <td class="note">${esc(s.constraints.join(', '))}</td></tr>`;
+    }).join('');
+    const good=!!c.first_detection;
+    return `<div class="card" style="margin-bottom:16px">
+      <div class="row" style="justify-content:space-between">
+        <b>${esc(c.label)}</b>
+        <span class="chip">modelled at ${c.area_km2} km&sup2;</span></div>
+      <table style="width:100%;margin-top:10px;border-collapse:collapse">${rows}</table>
+      <div style="margin-top:10px;color:${good?ok:warn}"><b>${esc(c.summary)}</b></div>
+    </div>`;
+  }).join('') + `<p class="note">Detection probability for EOS-04 is measured;
+    every other number is arithmetic from orbit geometry and the assumptions above.
+    Slick persistence is the least certain input &mdash; a thin film stays
+    SAR-detectable for roughly 12&ndash;48 h.</p>`;
+}
+
 async function renderEvidence(){
   if(!INC) return;
   if(!ALERT) ALERT=await jget(`/api/incident/${INC.incident_id}/alert`).catch(()=>null);
