@@ -22,6 +22,21 @@ bash scripts/run_demo.sh demo-001
 That generates the scenario, runs the full pipeline, writes the dossier, verifies the
 audit chain, and serves the dashboard at <http://127.0.0.1:8000>.
 
+On Windows, double-click **`scripts\start_dashboard.bat`** — it starts the API
+in its own window and opens the dashboard. Use **http://127.0.0.1:8000**, not
+`localhost`: the server binds IPv4 only and Windows may try IPv6 `::1` first.
+
+Two dashboards are served:
+
+- `/` — the original single-page investigator view.
+- `/app` — the unified view: one draggable timeline from the reverse-drift
+  hindcast through acquisition to the +72 h forecast, animated wind and current
+  from the pipeline's own environment field, the Coast Guard alert with its
+  distribution list, and the dossier download.
+- `/ops` — the operations console: top navigation, all map layers off until you
+  ask for them, and a **Satellite** page that runs the real model over real SAR
+  imagery and feeds the result into the same attribution engine.
+
 For the second scenario — a different seed, culprit, traffic density and wind band that
 the engine was never developed against:
 
@@ -159,7 +174,8 @@ algorithms and data flow. In brief:
 | 8 | Impact Assessment & Prediction | `impact/` | **built** |
 | 9 | Investigator Dashboard | `api.py`, `web/` | **built** |
 | 10 | Evidence & Integrity | `evidence/` | **built** |
-| 11 | Dissemination & Alerting | — | pending |
+| 11 | Dissemination & Alerting | `dissemination/` | **built** (composes, does not transmit) |
+| 1 | Satellite ingest console | `satellite/` | **built** (replay + drop-in; live/NRT needs credentials) |
 
 Layer 7 is the differentiator, and it is built and verified. Section 10.3 of CLAUDE.md
 lists every remaining gap explicitly.
@@ -185,8 +201,88 @@ python -m samudra.trust.score     --incident demo-001
 python -m samudra.impact.forecast --incident demo-001
 python -m samudra.evidence.report --incident demo-001
 python -m samudra.evidence.integrity --verify
+python -m samudra.dissemination   --incident demo-001 --print-message --geojson
+python -m samudra.satellite       --list
+python -m samudra.satellite       --live --days 14
+python -m samudra.satellite       --observation sos-sentinel-test-3 --process
 python -m samudra.api --port 8000
 ```
+
+---
+
+## Satellite operations (layer 1 console)
+
+`/ops` -> **Satellite**, or `python -m samudra.satellite --list`.
+
+Three modes, kept apart on purpose, because the difference is exactly what a
+reviewer will push on:
+
+| Mode | What it is | Status here |
+|---|---|---|
+| **LIVE / NRT** | a live catalogue query against an Indian provider | **needs an account.** EOS-04 (Bhoonidhi/NRSC) and INSAT-3DS / EOS-06 (MOSDAC/ISRO) both gate their catalogue behind a registered login and publish no open endpoint — Bhoonidhi 404s on every API path, MOSDAC `/opendata/` returns 401. Adapters are present and marked **unverified**. No non-Indian mission is carried as a substitute |
+| **REAL SATELLITE REPLAY** | genuine SAR already on this machine, with its published provenance | the offline demo |
+| **SYNTHETIC DEMO** | this project's generated scenes | kept, labelled, never called an observation |
+
+**What LIVE/NRT means here, precisely.** Nothing can be retrieved live until
+you register. Both Indian providers were probed from this machine on
+2026-09-23: Bhoonidhi returns 404 on `/opensearch`, `/api/` and `/services`;
+MOSDAC `/opendata/` returns **401** — it exists and refuses without credentials.
+So the console reports `AUTHENTICATION REQUIRED` and stops. It does not
+substitute another country's mission and hope nobody asks.
+
+**The working route today** is the drop-in: download an EOS-04 / INSAT-3DS /
+EOS-06 product from the portal yourself, put it in `data/satellite/incoming/`
+with a sidecar `.json`, and it ingests with full provenance.
+
+**The model actually runs.** Pressing *Process acquisition* loads
+`data/models/seg.pt`, preprocesses the chip exactly as training did, runs
+DeepLabv3+ over it and polygonises the output. There is no cached mask and no
+lookup. `ground_truth.json` and every `label/` directory are blocked from the
+inference path by a runtime guard, and a test asserts at source level that no
+line both names a label and reads a file.
+
+**Provenance is reported, including where it is missing.** The research archives
+publish no per-chip acquisition time, so the console prints
+`NOT PUBLISHED BY SOURCE` rather than inventing one.
+
+**Two things are declared context, not satellite data.** A research chip has no
+coordinate reference system, so its position on the map is an *operator input*;
+and drift needs a wind/current field while attribution needs AIS, so both come
+from a named context incident. The detection is real; the water it is placed in
+is declared. A dropped-in GeoTIFF that carries its own transform uses that
+instead.
+
+To process a product you downloaded yourself (e.g. EOS-04 from Bhoonidhi), put
+it in `data/satellite/incoming/` with a sidecar `.json` of the metadata the
+provider published. Anything the sidecar does not state stays `UNDECLARED`.
+
+```bash
+BHOONIDHI_USER / BHOONIDHI_PASS
+MOSDAC_USER / MOSDAC_PASS
+```
+
+No credentials are stored in this repository and none are hardcoded.
+
+---
+
+## Alerting (layer 11)
+
+`python -m samudra.dissemination --incident demo-001` writes
+`artifacts/demo-001/alert.json`: an NOS-DCP-tiered alert addressed to the Indian
+Coast Guard units that would respond, with range and bearing to the slick and a
+transmit-ready message. `--geojson` also writes the station layer for response
+agencies. The dashboard shows the same payload and lets you export both.
+
+Three things to say out loud rather than let a judge find them:
+
+- **Nothing is transmitted.** The system composes and addresses the alert;
+  `transmitted` is always `false`. A real transport needs verified recipients and
+  an authority to send.
+- **Tiers are NOS-DCP tiers** (I local / II regional / III national), because the
+  tier decides who is on the distribution list. NOS-DCP is written in tonnes and
+  SAR measures area, so area is an explicit volume proxy.
+- **The station list is compiled from public ICG establishment locations** to
+  roughly 1 km — fine for nearest-unit selection, not an operational directory.
 
 ---
 

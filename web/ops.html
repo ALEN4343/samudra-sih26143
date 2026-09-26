@@ -1,0 +1,1078 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SAMUDRA — Operations Console</title>
+<link rel="stylesheet" href="/static/vendor/leaflet.css"/>
+<script src="/static/vendor/leaflet.js"></script>
+<script>
+  /* Vendored Leaflet is the primary copy so the console works with no network.
+     If this checkout lacks web/vendor/, fall back to the CDN rather than
+     rendering a blank page. */
+  if (typeof L === "undefined") {
+    document.write('<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>');
+    document.write('<scr'+'ipt src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></scr'+'ipt>');
+  }
+</script>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#131920; --panel2:#1a212b; --line:#2a3542; --txt:#e6edf3;
+    --dim:#8b99a8; --mute:#63707e;
+    --slick:#ff6b4a; --env:#ffd166; --suspect:#ff3b30; --cand:#58a6ff; --filt:#3d4450;
+    --ok:#3fb950; --warn:#d29922; --bad:#f85149; --acc:#4493f8;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);overflow:hidden;
+    font:13px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+
+  /* ---------------- top navigation ---------------- */
+  #nav{height:48px;display:flex;align-items:stretch;background:var(--panel);
+    border-bottom:1px solid var(--line);position:relative;z-index:1000}
+  #brand{display:flex;align-items:center;gap:10px;padding:0 18px;border-right:1px solid var(--line)}
+  #brand b{font-size:15px;letter-spacing:.18em;font-weight:600}
+  #brand span{font-size:9px;letter-spacing:.1em;color:var(--mute);
+    border:1px solid var(--line);border-radius:3px;padding:1px 5px}
+  #tabs{display:flex}
+  #tabs button{background:none;border:0;border-bottom:2px solid transparent;color:var(--dim);
+    padding:0 17px;font:inherit;font-size:12.5px;cursor:pointer;letter-spacing:.02em}
+  #tabs button:hover{color:var(--txt);background:#19212b}
+  #tabs button.on{color:var(--txt);border-bottom-color:var(--acc)}
+  #navright{margin-left:auto;display:flex;align-items:center;gap:10px;padding:0 16px;flex:none}
+  #tabs{overflow-x:auto;scrollbar-width:none}
+  #tabs::-webkit-scrollbar{display:none}
+  @media (max-width:1240px){
+    #tabs button{padding:0 12px;font-size:12px}
+    .statuschip{display:none}
+  }
+  @media (max-width:980px){ #brand span{display:none} #brand{padding:0 12px} }
+  .statuschip{font-size:10px;letter-spacing:.07em;padding:3px 9px;border-radius:99px;
+    border:1px solid var(--line);color:var(--dim);white-space:nowrap}
+  .statuschip.ok{border-color:#1c5c33;color:#56d364;background:#0e1f15}
+  .statuschip.warn{border-color:#5c4a17;color:#e3b341;background:#1e1a0e}
+  .statuschip.bad{border-color:#5c1f1f;color:#ff9492;background:#1f1012}
+
+  /* ---------------- page frame ---------------- */
+  #main{position:absolute;top:48px;left:0;right:0;bottom:0}
+  .page{position:absolute;inset:0;display:none}
+  .page.on{display:flex}
+  /* Leaflet writes position:relative inline onto its container, which beats an
+     id rule, so `inset:0` never applies. Size it directly instead. */
+  #map{width:100%;height:100%;background:#0a1018}
+  .mapwrap{position:relative;flex:1;min-width:0}
+  .ctx{width:360px;min-width:360px;border-left:1px solid var(--line);background:var(--panel);
+    overflow-y:auto;padding:16px}
+  .scrollpage{flex:1;overflow-y:auto;padding:22px 26px}
+
+  h2{font-size:10px;letter-spacing:.15em;color:var(--dim);margin:0 0 9px;font-weight:600;
+    text-transform:uppercase;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  h2 em{font-style:normal;font-size:9px;color:var(--mute);letter-spacing:.03em}
+  h3{font-size:13px;margin:0 0 4px;font-weight:600}
+  section{margin-bottom:22px}
+  p{margin:0 0 9px}
+  .note{font-size:10.5px;color:var(--dim);line-height:1.5}
+  .warnnote{font-size:10.5px;color:var(--warn);line-height:1.5}
+  .badnote{font-size:10.5px;color:#ff9492;line-height:1.5}
+  code{font:11.5px ui-monospace,"Cascadia Mono",Consolas,monospace;background:#0b0f14;
+    border:1px solid var(--line);border-radius:3px;padding:1px 5px}
+  a{color:var(--acc)}
+
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:3px 14px;font-size:12px;margin:0}
+  .kv dt{color:var(--dim)}
+  .kv dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;
+    overflow-wrap:anywhere}
+  .kv dd.l{text-align:left}
+
+  button{background:#202934;color:var(--txt);border:1px solid var(--line);border-radius:5px;
+    padding:7px 13px;cursor:pointer;font:inherit;font-size:12px}
+  button:hover{background:#28323f}
+  button:disabled{opacity:.42;cursor:default}
+  button.primary{background:#1f6feb;border-color:#1f6feb;color:#fff}
+  button.primary:hover{background:#2d7ff9}
+  button.ghost{background:none}
+  select,input[type=number],input[type=text]{background:#0f151d;color:var(--txt);
+    border:1px solid var(--line);border-radius:5px;padding:6px 9px;font:inherit;font-size:12px}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .grow{flex:1;min-width:0}
+
+  .card{border:1px solid var(--line);border-radius:7px;background:var(--panel2);padding:13px 14px}
+  .cards{display:grid;gap:10px}
+  .kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:10px}
+  .kpi .card b{display:block;font-size:22px;font-variant-numeric:tabular-nums;line-height:1.15}
+  .kpi .card span{font-size:9.5px;letter-spacing:.07em;color:var(--dim);text-transform:uppercase}
+
+  .chip{display:inline-block;font-size:9.5px;letter-spacing:.05em;padding:2px 7px;
+    border-radius:3px;background:#22303e;color:var(--dim)}
+  .chip.real{background:#0e1f15;color:#56d364}
+  .chip.syn{background:#1e1a0e;color:#e3b341}
+  .chip.live{background:#101b2e;color:#6cb6ff}
+  .chip.bad{background:#1f1012;color:#ff9492}
+
+  table{border-collapse:collapse;width:100%;font-size:12px}
+  th,td{text-align:left;padding:6px 9px;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:600;font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+  td.n{text-align:right;font-variant-numeric:tabular-nums}
+
+  /* ---------------- layers popover ---------------- */
+  #layerbtn{position:absolute;top:12px;right:12px;z-index:800;display:none}
+  #layers{position:absolute;top:50px;right:12px;z-index:800;width:232px;display:none;
+    background:rgba(19,25,32,.97);border:1px solid var(--line);border-radius:7px;
+    backdrop-filter:blur(4px);overflow:hidden}
+  #layers.on{display:block}
+  #layers .hd{padding:8px 12px;border-bottom:1px solid var(--line);font-size:9.5px;
+    letter-spacing:.13em;color:var(--dim);text-transform:uppercase}
+  #layers label{display:flex;align-items:center;gap:9px;padding:7px 12px;cursor:pointer;
+    font-size:12px;border-bottom:1px solid #1e2732}
+  #layers label:last-child{border-bottom:0}
+  #layers label:hover{background:#19212b}
+  #layers input{accent-color:#4493f8;margin:0}
+  #layers .sw{width:10px;height:10px;border-radius:2px;flex:none}
+  #layers .ft{padding:8px 12px;border-top:1px solid var(--line);font-size:10px;color:var(--mute)}
+
+  /* ---------------- satellite console ---------------- */
+  .satgrid{display:grid;grid-template-columns:330px 1fr 330px;gap:16px;height:100%}
+  .satcol{overflow-y:auto;padding-right:4px}
+  .modes{display:grid;gap:7px}
+  .mode{border:1px solid var(--line);border-radius:6px;padding:9px 11px;cursor:pointer;
+    background:var(--panel2);transition:border-color .12s}
+  .mode:hover{border-color:#3d4c5e}
+  .mode.on{border-color:var(--acc);background:#101b2e}
+  .mode.disabled{opacity:.55;cursor:not-allowed}
+  .mode .t{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .mode .t b{font-size:12px;letter-spacing:.04em}
+  .mode .d{font-size:10.5px;color:var(--dim);margin-top:3px;line-height:1.45}
+
+  .obslist{max-height:300px;overflow-y:auto;border:1px solid var(--line);border-radius:6px}
+  .obs{padding:8px 11px;border-bottom:1px solid #1e2732;cursor:pointer;font-size:11.5px}
+  .obs:last-child{border-bottom:0}
+  .obs:hover{background:#19212b}
+  .obs.on{background:#101b2e;box-shadow:inset 2px 0 0 var(--acc)}
+  .obs .a{display:flex;justify-content:space-between;gap:8px}
+  .obs .b{color:var(--mute);font-size:10px;margin-top:2px}
+
+  .triptych{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .shot{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:#0a0e13}
+  .shot .cap{font-size:9.5px;letter-spacing:.08em;color:var(--dim);padding:6px 9px;
+    text-transform:uppercase;border-bottom:1px solid var(--line)}
+  .shot img{display:block;width:100%;height:auto;image-rendering:pixelated;background:#000}
+  .shot .ph{aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+    color:var(--mute);font-size:11px;text-align:center;padding:14px}
+
+  .stages{display:grid;gap:4px}
+  .stage{display:grid;grid-template-columns:20px 1fr auto;gap:9px;align-items:baseline;
+    font-size:11.5px;padding:5px 0;border-bottom:1px solid #1a222c}
+  .stage .m{color:var(--mute)}
+  .stage.done .m{color:var(--ok)}
+  .stage.run .m{color:var(--acc)}
+  .stage .d{color:var(--dim);font-size:10px}
+  .stage .t{color:var(--mute);font-variant-numeric:tabular-nums;font-size:10.5px}
+
+  .banner{border-radius:6px;padding:10px 12px;font-size:11.5px;line-height:1.5;
+    border:1px solid var(--line);background:var(--panel2)}
+  .banner.warn{border-color:#5c4a17;background:#1a170e;color:#e3b341}
+  .banner.bad{border-color:#5c1f1f;background:#1b1012;color:#ff9492}
+  .banner.ok{border-color:#1c5c33;background:#0e1a12;color:#7ee787}
+
+  .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#131920;color:var(--txt)}
+  .leaflet-popup-content{margin:9px 12px;font-size:12px}
+  .leaflet-container a.leaflet-popup-close-button{color:var(--dim)}
+  #boot{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    background:var(--bg);z-index:2000;color:var(--dim);font-size:12px;letter-spacing:.12em;
+    text-align:center;padding:30px}
+  @media (max-width:1400px){ .satgrid{grid-template-columns:300px 1fr 300px} .ctx{width:320px;min-width:320px} }
+  @media (max-width:1150px){ .satgrid{grid-template-columns:1fr} .ctx{width:290px;min-width:290px} }
+</style>
+</head>
+<body>
+
+<div id="nav">
+  <div id="brand"><b>SAMUDRA</b><span>OPS</span></div>
+  <div id="tabs">
+    <button data-p="dashboard" class="on">Dashboard</button>
+    <button data-p="satellite">Satellite</button>
+    <button data-p="spill">Spill</button>
+    <button data-p="drift">Drift</button>
+    <button data-p="ais">AIS</button>
+    <button data-p="evidence">Evidence</button>
+    <button data-p="help">Help</button>
+  </div>
+  <div id="navright">
+    <span class="statuschip" id="chip_model">model —</span>
+    <span class="statuschip" id="chip_live">live —</span>
+    <select id="pick" title="incident"></select>
+  </div>
+</div>
+
+<div id="main">
+  <div id="boot">LOADING…</div>
+
+  <!-- ============ map-backed pages share one map ============ -->
+  <div class="page" id="p_dashboard">
+    <div class="mapwrap" id="mapslot"></div>
+    <div class="ctx" id="ctx_dashboard"></div>
+  </div>
+  <div class="page" id="p_spill"><div class="mapwrap"></div><div class="ctx" id="ctx_spill"></div></div>
+  <div class="page" id="p_drift"><div class="mapwrap"></div><div class="ctx" id="ctx_drift"></div></div>
+  <div class="page" id="p_ais"><div class="mapwrap"></div><div class="ctx" id="ctx_ais"></div></div>
+
+  <!-- ============ satellite operations console ============ -->
+  <div class="page" id="p_satellite">
+    <div class="scrollpage">
+      <div class="satgrid">
+        <div class="satcol">
+          <section>
+            <h2>Mode <em>never silently substituted</em></h2>
+            <div class="modes" id="modes"></div>
+            <div class="banner" id="modebanner" style="margin-top:9px"></div>
+          </section>
+          <section>
+            <h2>Acquisitions <em id="obscount"></em></h2>
+            <div class="obslist" id="obslist"></div>
+            <div class="note" id="dropinnote" style="margin-top:7px"></div>
+          </section>
+          <section>
+            <h2>Auto monitor</h2>
+            <div class="row">
+              <button id="checknow">Check for new data</button>
+              <label class="note" style="display:flex;align-items:center;gap:6px">
+                <input type="checkbox" id="automon"> every 5 min</label>
+            </div>
+            <dl class="kv" id="monitor" style="margin-top:9px"></dl>
+            <div class="note" style="margin-top:7px">A satellite does not deliver a
+              new scene every few minutes. This asks the configured source whether
+              a new product has appeared, and reports the answer.</div>
+          </section>
+        </div>
+
+        <div class="satcol">
+          <section>
+            <h2>Satellite observation <em id="obsmode"></em></h2>
+            <div class="triptych">
+              <div class="shot"><div class="cap">observation</div><div id="sh_raw" class="ph">select an acquisition</div></div>
+              <div class="shot"><div class="cap">model prediction</div><div id="sh_mask" class="ph">not run</div></div>
+              <div class="shot"><div class="cap">overlay</div><div id="sh_over" class="ph">not run</div></div>
+            </div>
+            <div class="row" style="margin-top:11px">
+              <button id="btn_process" class="primary" disabled>Process acquisition</button>
+              <button id="btn_infer" disabled>Run inference only</button>
+              <span class="note" id="procstate"></span>
+            </div>
+          </section>
+
+          <section>
+            <h2>Processing pipeline</h2>
+            <div class="stages" id="stages"></div>
+          </section>
+
+          <section id="sec_detect" style="display:none">
+            <h2>Detection <em>from the image, not a fixture</em></h2>
+            <div class="banner warn" id="anomalybanner"></div>
+            <table id="detecttable" style="margin-top:10px"></table>
+          </section>
+
+          <section id="sec_attr" style="display:none">
+            <h2>Downstream — existing SAMUDRA engine</h2>
+            <div class="kpi" id="attrkpi"></div>
+            <div id="attrlist" style="margin-top:11px"></div>
+            <div class="note" style="margin-top:9px">Ranked by spatio-temporal and
+              geometric compatibility. These are high-correlation candidates;
+              correlation is not causation and no vessel is asserted to have
+              caused anything.</div>
+          </section>
+        </div>
+
+        <div class="satcol">
+          <section>
+            <h2>Provenance <em>where did this image come from</em></h2>
+            <dl class="kv" id="prov"></dl>
+            <div class="note" id="provnote" style="margin-top:9px"></div>
+            <div class="warnnote" id="provcaveats" style="margin-top:7px"></div>
+          </section>
+          <section>
+            <h2>Model</h2>
+            <dl class="kv" id="modelinfo"></dl>
+            <div class="note" id="modelnote" style="margin-top:8px"></div>
+          </section>
+          <section>
+            <h2>Georeference &amp; context</h2>
+            <div class="row">
+              <label class="note grow">anchor lat
+                <input type="number" id="anchor_lat" step="0.01" style="width:100%"></label>
+              <label class="note grow">anchor lon
+                <input type="number" id="anchor_lon" step="0.01" style="width:100%"></label>
+            </div>
+            <div class="row" style="margin-top:7px">
+              <label class="note grow">ground sample m/px
+                <input type="number" id="gsd" value="30" step="1" style="width:100%"></label>
+              <label class="note grow">context incident
+                <select id="baseinc" style="width:100%"></select></label>
+            </div>
+            <div class="warnnote" style="margin-top:8px">A research SAR chip carries
+              no coordinate reference system. This anchor is an <b>operator input</b>,
+              not satellite metadata, and the wind/current field and AIS traffic come
+              from the chosen context incident. The detection is real; the water it
+              is placed in is declared context.</div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ evidence ============ -->
+  <div class="page" id="p_evidence"><div class="scrollpage" id="evidencebody"></div></div>
+
+  <!-- ============ help ============ -->
+  <div class="page" id="p_help"><div class="scrollpage" id="helpbody"></div></div>
+</div>
+
+<button id="layerbtn">Layers</button>
+<div id="layers">
+  <div class="hd">Map layers — all off by default</div>
+  <label><input type="checkbox" data-l="slick"><span class="sw" style="background:var(--slick)"></span>Spill</label>
+  <label><input type="checkbox" data-l="envelope"><span class="sw" style="background:var(--env)"></span>Origin zone</label>
+  <label><input type="checkbox" data-l="forecast"><span class="sw" style="background:#7ee787"></span>Forecast</label>
+  <label><input type="checkbox" data-l="tracks"><span class="sw" style="background:var(--cand)"></span>Vessel tracks</label>
+  <label><input type="checkbox" data-l="ships"><span class="sw" style="background:#8b99a8"></span>AIS vessels</label>
+  <label><input type="checkbox" data-l="sat"><span class="sw" style="background:#db6d28"></span>Satellite swath</label>
+  <label><input type="checkbox" data-l="cg"><span class="sw" style="background:#ff9478"></span>Coast Guard units</label>
+  <label><input type="checkbox" data-l="india"><span class="sw" style="background:#7d8590"></span>India boundary</label>
+  <div class="ft">Enable only what you need. Nothing is drawn until you ask for it.</div>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const $$=s=>[...document.querySelectorAll(s)];
+const fmt=(x,n=2)=>x==null||Number.isNaN(Number(x))?'—':Number(x).toFixed(n);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+if(!/^https?:$/.test(location.protocol)){
+  $('#boot').innerHTML='This console is served by the SAMUDRA API.<br><br>'+
+    'Run <code>python -m samudra.api --port 8000</code> then open '+
+    '<b>http://127.0.0.1:8000/ops</b>';
+  throw new Error('ops console must be served by the API');
+}
+
+const jget=async u=>{const r=await fetch(u);
+  if(!r.ok) throw new Error(`${u} → ${r.status} ${(await r.text()).slice(0,200)}`);
+  return r.json();};
+
+let INC=null, TRACKS=null, ALERT=null, MODEL=null, SOURCES=null, LIVE=null;
+let SEL_OBS=null, MODE='REAL_REPLAY', LAST=null, monTimer=null;
+
+/* ===================== map (shared across map pages) ================= */
+const map=L.map(L.DomUtil.create('div','',$('#mapslot')),{
+  zoomControl:true,attributionControl:false,fadeAnimation:false,minZoom:3,maxZoom:13
+}).setView([16.1,69.7],7);
+map.getContainer().id='map';
+/* The map is built inside a display:none page, so Leaflet caches a 0x0 size and
+   every fitBounds lands on zoom 0. A ResizeObserver is the race-free fix: it
+   fires the moment the container actually gets a box, whatever caused it. */
+let _fitPending=null;
+new ResizeObserver(()=>{
+  const s=map.getSize();
+  if(s.x<40||s.y<40) return;
+  map.invalidateSize();
+  if(_fitPending){ map.fitBounds(_fitPending.pad(0.5),{maxZoom:10}); _fitPending=null; }
+}).observe(map.getContainer());
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+  {maxZoom:13}).addTo(map);
+L.control.scale({imperial:false,position:'bottomleft'}).addTo(map);
+
+/* Offline coastline, drawn under everything and always on.
+
+   The Esri basemap above is the only source of land, so on a machine with no
+   route to arcgisonline the polygons float on an empty black rectangle — which
+   looks like a broken map rather than a deliberate one, and is exactly the
+   state a locked-down demo network puts us in. This draws the real Natural
+   Earth coastline the shoreline-impact ETA already loads, served as vectors by
+   /api/basemap/coastline, so land is present with or without tiles.
+
+   It is NOT a layer toggle. Part 3 says optional layers start off; land is not
+   optional, it is the map. Failure is silent by design: no coastline file on
+   disk means no land drawn, never a fabricated one. */
+const COAST=L.layerGroup().addTo(map);
+(async()=>{
+  try{
+    const gj=await jget('/api/basemap/coastline?min_lon=55&min_lat=-5&max_lon=105&max_lat=40');
+    if(!gj||!gj.features||!gj.features.length) return;
+    L.geoJSON(gj,{style:{color:'#4a5a6a',weight:1.1,opacity:.85,fill:false},
+                  interactive:false}).addTo(COAST);
+    COAST.bringToBack();
+  }catch(e){ /* no coastline on disk; the map simply has no land */ }
+})();
+
+/* Every optional layer starts empty AND detached. Part 3: the base map is
+   visible, nothing else, until the operator asks. */
+const LAYERS={};
+['slick','envelope','forecast','tracks','ships','sat','cg','india'].forEach(k=>{
+  LAYERS[k]={group:L.layerGroup(),drawn:false,on:false};
+});
+
+function moveMapTo(pageId){
+  const host=$('#'+pageId+' .mapwrap');
+  if(!host) return;
+  if(map.getContainer().parentNode!==host) host.appendChild(map.getContainer());
+  // The layer controls travel with the map so they sit over the map area and
+  // not over whichever contextual panel happens to be on the right.
+  host.appendChild($('#layerbtn'));
+  host.appendChild($('#layers'));
+  // The map is built while every page is display:none, so its container is 0x0
+  // until a page is shown. Invalidate on every entry, not just on the move.
+  requestAnimationFrame(()=>{
+    map.invalidateSize();
+    setTimeout(()=>map.invalidateSize(),120);
+  });
+}
+
+$('#layerbtn').onclick=()=>$('#layers').classList.toggle('on');
+$$('#layers input').forEach(el=>{
+  el.onchange=async()=>{
+    const k=el.dataset.l, L_=LAYERS[k];
+    L_.on=el.checked;
+    if(el.checked){ await ensureLayer(k); L_.group.addTo(map); }
+    else map.removeLayer(L_.group);
+  };
+});
+
+async function ensureLayer(k){
+  const L_=LAYERS[k];
+  if(L_.drawn||!INC) return;
+  const g=L_.group;
+  if(k==='slick'){
+    L.geoJSON(INC.observed_slick.geometry,{style:{color:'#0b0f14',weight:5,opacity:.6,fill:false}}).addTo(g);
+    L.geoJSON(INC.observed_slick.geometry,{style:{color:'#ff6b4a',weight:2,
+      fillColor:'#ff6b4a',fillOpacity:.45}})
+     .bindPopup(`<b>Oil-like surface anomaly</b><br>${fmt(INC.observed_slick.area_km2,1)} km²`).addTo(g);
+  }
+  if(k==='envelope'){
+    (INC.envelope_steps||[]).forEach(s=>L.geoJSON(s.geometry,
+      {style:{color:'#ffd166',weight:.6,opacity:.22,fill:false}}).addTo(g));
+    L.geoJSON(INC.origin_envelope,{style:{color:'#ffd166',weight:1.6,opacity:.9,
+      fillColor:'#ffd166',fillOpacity:.06,dashArray:'5,4'}})
+     .bindPopup('Reverse-drift origin zone').addTo(g);
+  }
+  if(k==='forecast'){
+    [24,48,72].forEach(h=>{
+      const fc=(INC.forecasts||{})['forecast_'+h+'h']; if(!fc) return;
+      const cone=fc.features.find(f=>f.properties.kind==='uncertainty_cone');
+      const poly=fc.features.find(f=>f.properties.kind==='forecast');
+      if(cone) L.geoJSON(cone,{style:{color:'#3fb950',weight:1,opacity:.35,
+        dashArray:'3,4',fillColor:'#3fb950',fillOpacity:.05}}).addTo(g);
+      if(poly) L.geoJSON(poly,{style:{color:'#7ee787',weight:1.6,opacity:.85,
+        fillColor:'#7ee787',fillOpacity:.16}}).bindPopup(`Forecast +${h} h`).addTo(g);
+    });
+  }
+  if(k==='tracks'||k==='ships'){
+    if(!TRACKS) TRACKS=await jget(`/api/incident/${INC.incident_id}/tracks`);
+    const ST={suspect:{color:'#ff3b30',weight:2,opacity:.95},
+              envelope:{color:'#58a6ff',weight:1.2,opacity:.7},
+              filtered:{color:'#3d4450',weight:.8,opacity:.4},
+              outside:{color:'#2a3542',weight:.7,opacity:.28}};
+    TRACKS.features.forEach(f=>{
+      const p=f.properties;
+      if(k==='tracks'){
+        L.geoJSON(f,{style:ST[p.role]||ST.outside})
+         .bindPopup(`<b>${esc(p.vessel_name||'unknown')}</b><br>MMSI ${p.mmsi}<br>`+
+           `${esc(p.vessel_type||'')}<br>funnel role: ${p.role}`).addTo(g);
+      }else{
+        const c=f.geometry.coordinates[f.geometry.coordinates.length-1];
+        const sus=p.role==='suspect';
+        L.circleMarker([c[1],c[0]],{radius:sus?4.5:2.6,
+          color:sus?'#ff3b30':'#8b99a8',weight:sus?1.6:1,
+          fillColor:sus?'#ff3b30':'#2a3542',fillOpacity:sus?.9:.5})
+         .bindPopup(`<b>${esc(p.vessel_name||'unknown')}</b><br>MMSI ${p.mmsi}`).addTo(g);
+      }
+    });
+  }
+  if(k==='sat'){
+    const c=INC.observed_slick;
+    L.rectangle([[c.centroid_lat-0.55,c.centroid_lon-0.55],
+                 [c.centroid_lat+0.55,c.centroid_lon+0.55]],
+      {color:'#db6d28',weight:1.3,dashArray:'7,6',fillColor:'#db6d28',fillOpacity:.04})
+     .bindPopup('Scene footprint of this incident').addTo(g);
+  }
+  if(k==='cg'){
+    if(!ALERT) ALERT=await jget(`/api/incident/${INC.incident_id}/alert`).catch(()=>null);
+    (ALERT&&ALERT.stations?ALERT.stations.features:[]).forEach(f=>{
+      const p=f.properties, ll=[f.geometry.coordinates[1],f.geometry.coordinates[0]];
+      L.circleMarker(ll,{radius:p.addressed?5.5:3,color:p.addressed?'#ff9478':'#57606a',
+        weight:p.addressed?2:1,fillColor:p.addressed?'#ff9478':'#202934',
+        fillOpacity:p.addressed?.85:.5})
+       .bindPopup(`<b>${esc(p.name)}</b><br>${esc(p.role)} · ${esc(p.region)}`+
+         (p.addressed?`<br>${fmt(p.distance_km,0)} km · ${fmt(p.bearing_deg,0)}°`:'')).addTo(g);
+    });
+  }
+  if(k==='india'){
+    const gj=await jget('/static/india_boundary.json').catch(()=>null);
+    if(gj) L.geoJSON(gj,{style:{color:'#7d8590',weight:1.1,opacity:.85,
+      fillColor:'#1a212b',fillOpacity:.9}})
+      .bindPopup('<b>India</b><br>'+esc(gj.properties.depiction)).addTo(g);
+  }
+  L_.drawn=true;
+}
+
+/* ===================== navigation ================= */
+const PAGES=['dashboard','satellite','spill','drift','ais','evidence','help'];
+function show(p){
+  PAGES.forEach(x=>$('#p_'+x).classList.toggle('on',x===p));
+  $$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
+  const mapPage=['dashboard','spill','drift','ais'].includes(p);
+  $('#layerbtn').style.display=mapPage?'block':'none';
+  if(!mapPage) $('#layers').classList.remove('on');
+  if(mapPage) moveMapTo('p_'+p);
+  if(p==='satellite') initSatellite();
+  if(p==='evidence') renderEvidence();
+  if(p==='help') renderHelp();
+  history.replaceState(null,'','#'+p);
+}
+$$('#tabs button').forEach(b=>b.onclick=()=>show(b.dataset.p));
+
+/* ===================== boot ================= */
+async function boot(){
+  try{
+    const list=(await jget('/api/incidents')).filter(i=>i.ready);
+    $('#pick').innerHTML=list.map(i=>`<option value="${i.incident_id}">${i.incident_id}</option>`).join('');
+    $('#baseinc').innerHTML=list.filter(i=>!i.incident_id.startsWith('sat-'))
+      .map(i=>`<option value="${i.incident_id}"${i.incident_id==='demo-001'?' selected':''}>${i.incident_id}</option>`).join('');
+    $('#pick').onchange=()=>loadIncident($('#pick').value);
+    await loadIncident(list[0].incident_id);
+
+    MODEL=await jget('/api/satellite/model').catch(()=>null);
+    LIVE=await jget('/api/satellite/live').catch(()=>null);
+    renderChips();
+    $('#boot').remove();
+    show((location.hash||'#dashboard').slice(1));
+  }catch(e){
+    $('#boot').innerHTML='<div style="max-width:560px">'+esc(e.message)+'</div>';
+  }
+}
+
+async function loadIncident(id){
+  INC=await jget(`/api/incident/${id}`);
+  TRACKS=null; ALERT=null;
+  Object.values(LAYERS).forEach(l=>{l.group.clearLayers();l.drawn=false;});
+  for(const [k,l] of Object.entries(LAYERS)) if(l.on) await ensureLayer(k);
+  const b=L.geoJSON(INC.origin_envelope).getBounds();
+  b.extend(L.geoJSON(INC.observed_slick.geometry).getBounds());
+  map.invalidateSize();
+  if(map.getSize().x>40) map.fitBounds(b.pad(0.5),{maxZoom:10});
+  else _fitPending=b;                       // the observer will do it
+  renderDashboard(); renderSpill(); renderDrift(); renderAis();
+  if(!$('#anchor_lat').value){
+    $('#anchor_lat').value=INC.observed_slick.centroid_lat.toFixed(3);
+    $('#anchor_lon').value=INC.observed_slick.centroid_lon.toFixed(3);
+  }
+}
+
+function renderChips(){
+  const m=$('#chip_model');
+  if(!MODEL||!MODEL.available){ m.textContent='model: none'; m.className='statuschip bad'; }
+  else if(MODEL.representative){ m.textContent='model: trained'; m.className='statuschip ok'; }
+  else { m.textContent='model: not representative'; m.className='statuschip warn'; }
+  const l=$('#chip_live');
+  l.textContent='live/NRT: '+(LIVE&&LIVE.available?'configured':'unavailable');
+  l.className='statuschip '+(LIVE&&LIVE.available?'ok':'warn');
+}
+
+/* ===================== contextual panels ================= */
+function envChips(){
+  const e=INC.env_summary;
+  return `<div class="row" style="gap:6px">
+    <span class="chip">wind ${fmt(e.mean_wind_speed_ms,1)} m/s from ${fmt(e.mean_wind_dir_deg,0)}°</span>
+    <span class="chip">current ${fmt(e.mean_current_speed_ms,2)} m/s → ${fmt(e.mean_current_dir_deg,0)}°</span>
+    <span class="chip ${e.wind_gate_pass?'real':'bad'}">wind gate ${e.wind_gate_pass?'PASS':'FAIL'}</span>
+  </div>`;
+}
+
+function renderDashboard(){
+  const f=INC.funnel, s=INC.observed_slick, a=INC.slick_age||{};
+  $('#ctx_dashboard').innerHTML=`
+    <section><h2>Incident <em>${INC.synthetic?'synthetic scenario':'real'}</em></h2>
+      <h3>${esc(INC.incident_id)}</h3>
+      <div class="note">SAR acquisition ${esc(INC.acquisition_at.replace('T',' ').slice(0,16))} UTC</div>
+    </section>
+    <section><h2>At a glance</h2><div class="kpi">
+      <div class="card"><b>${fmt(s.area_km2,1)}</b><span>km² anomaly</span></div>
+      <div class="card"><b>${f.ranked}</b><span>candidates</span></div>
+      <div class="card"><b>${fmt(a.best_hours,1)}</b><span>h estimated age</span></div>
+    </div></section>
+    <section><h2>Environment <em>context for drift</em></h2>${envChips()}
+      <div class="note" style="margin-top:7px">Wind and current drive the hindcast and
+        the look-alike gate. They are model inputs, not a display feature.</div></section>
+    <section><h2>Map</h2><div class="note">The map starts clean. Use
+      <b>Layers</b> (top right) to add the spill, origin zone, forecast, vessels
+      or Coast Guard units.</div></section>`;
+}
+
+function renderSpill(){
+  const s=INC.observed_slick;
+  $('#ctx_spill').innerHTML=`
+    <section><h2>Oil-like surface anomaly</h2>
+      <div class="banner warn">SAR measures surface roughness. Oil, biogenic slicks,
+        low-wind cells and rain all darken it. This is an anomaly consistent with
+        oil, not a confirmed oil detection.</div></section>
+    <section><h2>Geometry</h2><dl class="kv">
+      <dt>Area</dt><dd>${fmt(s.area_km2,1)} km²</dd>
+      <dt>Perimeter</dt><dd>${fmt(s.perimeter_km,1)} km</dd>
+      <dt>Long axis</dt><dd>${fmt(s.major_axis_deg,0)}°</dd>
+      <dt>Eccentricity</dt><dd>${fmt(s.eccentricity,3)}</dd>
+      <dt>Shape complexity</dt><dd>${fmt(s.shape_complexity,2)}</dd>
+      <dt>Centre</dt><dd>${fmt(s.centroid_lat,3)}, ${fmt(s.centroid_lon,3)}</dd>
+    </dl></section>
+    <section><h2>Conditions at acquisition</h2>${envChips()}</section>
+    <section><h2>Source</h2><div class="note">${esc((INC.slick_source||{}).source||'—')}
+      ${INC.slick_source&&INC.slick_source.reason?'<br>'+esc(INC.slick_source.reason):''}</div></section>`;
+}
+
+function renderDrift(){
+  const a=INC.slick_age||{};
+  const rows=[24,48,72].map(h=>{
+    const fc=(INC.forecasts||{})['forecast_'+h+'h']; if(!fc) return '';
+    const p=(fc.features.find(x=>x.properties.kind==='forecast')||{}).properties||{};
+    return `<tr><td>+${h} h</td><td class="n">${fmt(p.area_km2,0)} km²</td>
+      <td class="n">${fmt(p.distance_to_coast_km,0)} km</td>
+      <td>${p.coastline_intersects?'<span class="chip bad">shore contact</span>':'—'}</td></tr>`;
+  }).join('');
+  $('#ctx_drift').innerHTML=`
+    <section><h2>Hindcast</h2><dl class="kv">
+      <dt>Estimated age</dt><dd>${fmt(a.best_hours,1)} h (${fmt(a.low_hours,1)}–${fmt(a.high_hours,1)})</dd>
+      <dt>Fay cross-check</dt><dd>${fmt(a.fay_estimate_hours,1)} h ${a.agrees_with_fay?'agrees':'DISAGREES'}</dd>
+      <dt>Backtrack steps</dt><dd>${(INC.envelope_steps||[]).length} × 1 h</dd>
+    </dl>
+    <div class="note" style="margin-top:7px">The Fay estimate assumes a reference
+      discharge volume, so it is a consistency check, not an independent
+      measurement.</div></section>
+    <section><h2>Forecast</h2><table><tr><th>horizon</th><th>area</th><th>to shore</th><th></th></tr>${rows}</table>
+    <div class="note" style="margin-top:7px">Enable the <b>Forecast</b> and
+      <b>Origin zone</b> layers to see these on the map.</div></section>
+    <section><h2>Driving environment</h2>${envChips()}</section>`;
+}
+
+function renderAis(){
+  const f=INC.funnel;
+  $('#ctx_ais').innerHTML=`
+    <section><h2>Candidate funnel</h2><div class="kpi">
+      <div class="card"><b>${f.total_in_scene}</b><span>in scene</span></div>
+      <div class="card"><b>${f.in_envelope}</b><span>in origin zone</span></div>
+      <div class="card"><b>${f.ranked}</b><span>ranked</span></div>
+    </div></section>
+    <section><h2>High-correlation candidates</h2>
+      ${INC.suspects.map(s=>`<div class="card" style="margin-bottom:8px">
+        <div class="row" style="justify-content:space-between">
+          <b>${esc(s.vessel_name||'unknown')}</b>
+          <span style="font-variant-numeric:tabular-nums">${fmt(s.posterior,3)}</span></div>
+        <div class="note">#${s.rank} · MMSI ${s.mmsi} · ${esc(s.flag||'—')} · ${esc(s.vessel_type||'')}</div>
+        <div class="note" style="margin-top:6px">
+          spatial ${fmt(s.best_hypothesis.centroid_offset_km,1)} km ·
+          geometry IoU ${fmt(s.best_hypothesis.iou,2)} ·
+          orientation ${fmt(s.best_hypothesis.orientation_delta_deg,0)}° ·
+          ${s.gap_coincidence?'AIS gap at release window':'AIS continuous'}</div>
+      </div>`).join('')}
+      <div class="banner" style="margin-top:4px">Candidate vessels associated with
+        the event by spatio-temporal and geometric correlation. No vessel is
+        asserted to have caused the spill.</div></section>`;
+}
+
+/* ===================== satellite console ================= */
+let satInit=false;
+async function initSatellite(){
+  if(satInit) return; satInit=true;
+  SOURCES=await jget('/api/satellite/sources');
+  LIVE=SOURCES.live; renderChips();
+  renderModes(); renderModel(); renderObsList(); renderMonitor(null);
+  $('#dropinnote').innerHTML='Real products you download yourself go in <code>'+
+    esc(SOURCES.dropin_dir)+'</code> with a sidecar <code>.json</code> of the '+
+    'metadata the provider published.';
+}
+
+function renderModes(){
+  const nLive=(SOURCES&&SOURCES.live_products?SOURCES.live_products.length:0);
+  const modes=[
+    {id:'LIVE_NRT',t:'Live / NRT',
+     d:LIVE&&LIVE.available
+       ? `Live catalogue query against the provider, right now. ${nLive} acquisition(s) over the AOI.`
+       : 'EOS-04 (Bhoonidhi) and INSAT-3DS / EOS-06 (MOSDAC) both need a registered account.',
+     ok:LIVE&&LIVE.available},
+    {id:'REAL_REPLAY',t:'Real satellite replay',d:'Real SAR imagery already on this machine, with its published provenance.',ok:true},
+    {id:'SYNTHETIC',t:'Synthetic demo',d:'Generated scenes. Not a satellite observation.',ok:true},
+  ];
+  $('#modes').innerHTML=modes.map(m=>`
+    <div class="mode ${MODE===m.id?'on':''} ${m.ok?'':'disabled'}" data-m="${m.id}">
+      <div class="t"><b>${m.t}</b><span class="chip ${m.id==='SYNTHETIC'?'syn':(m.ok?'real':'bad')}">${m.ok?(m.id==='SYNTHETIC'?'SYNTHETIC':'AVAILABLE'):'UNAVAILABLE'}</span></div>
+      <div class="d">${m.d}</div></div>`).join('');
+  $$('#modes .mode').forEach(el=>el.onclick=()=>{
+    if(el.classList.contains('disabled')) return;
+    MODE=el.dataset.m; renderModes(); renderObsList(); clearShots();
+  });
+  const b=$('#modebanner');
+  if(MODE==='LIVE_NRT'&&!(LIVE&&LIVE.available)){
+    b.className='banner bad';
+    b.innerHTML='<b>LIVE/NRT UNAVAILABLE.</b> '+esc(LIVE?LIVE.explanation:'');
+  }else if(MODE==='LIVE_NRT'){
+    const rows=(LIVE.providers||[]).map(p=>{
+      const cls=p.search_needs_credentials?'bad':'real';
+      return `<div style="display:flex;gap:8px;align-items:baseline;margin-top:4px">
+        <span class="chip ${cls}">${esc(p.provider)}</span>
+        <span style="flex:1">${esc(p.satellite)} — ${esc(p.status)}
+          ${p.host_reachable===true?'<span class="chip">host reachable</span>':''}
+          ${p.adapter_verified?'':'<span class="chip bad">adapter unverified</span>'}</span></div>`;
+    }).join('');
+    b.className='banner ok';
+    b.innerHTML='<b>LIVE CATALOGUE.</b> Queried at '+
+      esc((LIVE.checked_at||'').replace('T',' ').slice(0,19))+' UTC. The products '+
+      'listed below are the provider’s own records with the provider’s own '+
+      'sensing times — nothing here is generated.'+rows+
+      '<div class="warnnote" style="margin-top:7px">Metadata is live. The IMAGES '+
+      'are still on the provider’s servers; downloading needs a free account. '+
+      'A live entry cannot be run through the model until it is fetched, and the '+
+      'pipeline refuses rather than substituting an archive chip.</div>';
+  }else if(MODE==='SYNTHETIC'){
+    b.className='banner warn';
+    b.innerHTML='<b>SYNTHETIC DEMO.</b> These scenes were generated by this project. '+
+      'They are useful for showing the whole chain end to end and are never a satellite observation.';
+  }else{
+    b.className='banner ok';
+    b.innerHTML='<b>REAL SATELLITE REPLAY.</b> Genuine spaceborne SAR imagery. '+
+      'Where a source does not publish an acquisition time, this console says so '+
+      'rather than inventing one.';
+  }
+}
+
+function currentList(){
+  if(!SOURCES) return [];
+  if(MODE==='SYNTHETIC') return SOURCES.synthetic;
+  if(MODE==='LIVE_NRT') return SOURCES.live_products||[];
+  return SOURCES.replay;
+}
+
+function renderObsList(){
+  const items=currentList();
+  $('#obscount').textContent=items.length?items.length+' available':'';
+  if(!items.length){
+    $('#obslist').innerHTML='<div class="obs"><div class="a">No acquisitions in this mode.</div>'+
+      '<div class="b">Switch to Real satellite replay.</div></div>';
+    return;
+  }
+  $('#obslist').innerHTML=items.map(o=>{
+    const tag=o.mode==='SYNTHETIC'?['syn','SYN']
+            :o.mode==='LIVE_NRT'?['live','LIVE']:['real','REAL'];
+    return `<div class="obs${SEL_OBS&&SEL_OBS.observation_id===o.observation_id?' on':''}" data-id="${esc(o.observation_id)}">
+      <div class="a"><span>${esc(o.satellite)} · ${esc(o.sensor)}</span>
+        <span class="chip ${tag[0]}">${tag[1]}</span></div>
+      <div class="b">${esc((o.product||'').slice(0,58))}</div>
+      <div class="b">${o.acquisition_time_known
+        ? esc(o.acquired_at.replace('T',' ').slice(0,19))+' UTC'
+        : 'acquisition time not published by source'}${
+        o.pixels_local===false
+          ? ` · <span style="color:#e3b341">not downloaded, ${((o.size_bytes||0)/1e9).toFixed(2)} GB</span>`
+          : ''}</div>
+    </div>`;}).join('');
+  $$('#obslist .obs').forEach(el=>el.onclick=()=>selectObs(el.dataset.id));
+}
+
+function clearShots(){
+  ['raw','mask','over'].forEach(k=>{
+    const el=$('#sh_'+k);
+    el.outerHTML=`<div id="sh_${k}" class="ph">${k==='raw'?'select an acquisition':'not run'}</div>`;
+  });
+  $('#sec_detect').style.display='none';
+  $('#sec_attr').style.display='none';
+  renderStages([]);
+}
+
+function selectObs(id){
+  SEL_OBS=currentList().find(o=>o.observation_id===id)||null;
+  renderObsList(); clearShots(); renderProv();
+  const noPixels=SEL_OBS&&SEL_OBS.pixels_local===false;
+  $('#btn_process').disabled=!SEL_OBS||!(MODEL&&MODEL.available)||noPixels;
+  $('#btn_infer').disabled=$('#btn_process').disabled;
+  $('#obsmode').textContent=SEL_OBS?SEL_OBS.mode.replace('_',' / '):'';
+  $('#procstate').innerHTML=noPixels
+    ? '<span style="color:#e3b341">Image not downloaded — metadata only. '
+      +'Download it from the provider portal and drop it into data/satellite/incoming/.</span>' : '';
+  if(SEL_OBS&&noPixels){
+    $('#sh_raw').outerHTML='<div id="sh_raw" class="ph">image is on the '
+      +'provider’s servers<br>('+((SEL_OBS.size_bytes||0)/1e9).toFixed(2)
+      +' GB, not downloaded)</div>';
+    renderStages([{stage:'live catalogue entry received',state:'done',
+      detail:SEL_OBS.product},
+      {stage:'download product',state:'todo',detail:'download from the portal, drop into data/satellite/incoming/'},
+      {stage:'preprocessing',state:'todo'},{stage:'ML inference',state:'todo'},
+      {stage:'anomaly characterisation',state:'todo'},
+      {stage:'environmental analysis',state:'todo'},
+      {stage:'drift hindcast',state:'todo'},{stage:'AIS correlation',state:'todo'}]);
+    return;
+  }
+  if(SEL_OBS){
+    $('#sh_raw').outerHTML=`<img id="sh_raw" src="/api/satellite/observation/${encodeURIComponent(id)}/image?kind=raw" alt="satellite observation">`;
+  }
+  renderStages([{stage:'observation received',state:'done',
+    detail:SEL_OBS?SEL_OBS.product:''},
+    {stage:'preprocessing',state:'todo'},{stage:'ML inference',state:'todo'},
+    {stage:'anomaly characterisation',state:'todo'},
+    {stage:'environmental analysis',state:'todo'},
+    {stage:'drift hindcast',state:'todo'},{stage:'AIS correlation',state:'todo'}]);
+}
+
+function renderStages(list){
+  $('#stages').innerHTML=list.map(s=>`<div class="stage ${s.state==='done'?'done':(s.state==='run'?'run':'')}">
+    <span class="m">${s.state==='done'?'✓':(s.state==='run'?'→':'·')}</span>
+    <span><span>${esc(s.stage)}</span>${s.detail?`<br><span class="d">${esc(s.detail)}</span>`:''}</span>
+    <span class="t">${s.ms!=null?fmt(s.ms,0)+' ms':''}</span></div>`).join('');
+}
+
+function renderProv(){
+  const o=SEL_OBS;
+  if(!o){ $('#prov').innerHTML=''; $('#provnote').textContent=''; $('#provcaveats').textContent=''; return; }
+  const rows=[
+    ['Mode',o.mode.replace('_',' / ')],
+    ['Satellite',o.satellite],['Sensor',o.sensor],['Product',o.product],
+    ['Acquisition',o.acquisition_time_known?o.acquired_at:'NOT PUBLISHED BY SOURCE'],
+    ['Processing',o.processed_at||'not published'],
+    ['Received by SAMUDRA',(o.received_at||'').replace('T',' ').slice(0,19)],
+    ['Coverage',o.region||'not published'],
+    ['Pixel size',o.pixel_size?o.pixel_size.join(' × '):'—'],
+    ['Resolution',o.resolution_m?o.resolution_m+' m':'not published'],
+    ['Georeference',o.georeference==='product'?'from product':'none in product'],
+    ['Pixels on this machine',o.pixels_local===false?'NO — metadata only':'yes'],
+    ...(o.size_bytes?[['Product size',((o.size_bytes)/1e9).toFixed(2)+' GB']]:[]),
+    ...(o.online!=null?[['Provider online',o.online?'yes':'archived (offline)']]:[]),
+    ...(o.polarisation?[['Polarisation',o.polarisation]]:[]),
+    ['Source',o.source],
+    ['DOI',o.doi||'—'],
+    ['Checksum',(o.checksum_sha256||'').slice(0,16)+'…'],
+    ['Model',MODEL&&MODEL.available?(MODEL.arch||'checkpoint')+' @ epoch '+(MODEL.epoch??'?'):'none'],
+  ];
+  $('#prov').innerHTML=rows.map(r=>`<dt>${esc(r[0])}</dt><dd class="l">${esc(r[1])}</dd>`).join('');
+  $('#provnote').textContent=o.provenance_note||'';
+  $('#provcaveats').innerHTML=(o.caveats||[]).map(c=>'• '+esc(c)).join('<br>');
+}
+
+function renderModel(){
+  if(!MODEL){ $('#modelinfo').innerHTML=''; return; }
+  $('#modelinfo').innerHTML=[
+    ['Available',MODEL.available?'yes':'NO'],
+    ['Architecture',MODEL.arch||'—'],
+    ['Classes',(MODEL.classes||[]).join(', ')],
+    ['Input size',MODEL.input_size||'—'],
+    ['Epoch',MODEL.epoch??'—'],
+    ['Val oil IoU',MODEL.val_oil_iou!=null?fmt(MODEL.val_oil_iou,4):'—'],
+    ['Selected on',MODEL.selected_on||'—'],
+    ['Quotable',MODEL.representative?'yes':'NO — reduced run'],
+  ].map(r=>`<dt>${esc(r[0])}</dt><dd class="l">${esc(r[1])}</dd>`).join('');
+  $('#modelnote').textContent=MODEL.detail||'';
+}
+
+function renderMonitor(r){
+  $('#monitor').innerHTML=[
+    ['Last check',r?(r.checked_at||'').replace('T',' ').slice(0,19):'never'],
+    ['Result',r?r.result:'—'],
+    ['New products',r?(r.new_products||[]).length:'—'],
+  ].map(x=>`<dt>${esc(x[0])}</dt><dd class="l">${esc(x[1])}</dd>`).join('')
+   +(r&&r.detail?`<dt>Detail</dt><dd class="l">${esc(r.detail)}</dd>`:'');
+}
+
+$('#checknow').onclick=async()=>{
+  const b=$('#checknow'); b.disabled=true; b.textContent='Checking…';
+  try{ renderMonitor(await jget('/api/satellite/check')); }
+  catch(e){ renderMonitor({checked_at:new Date().toISOString(),result:'SOURCE UNAVAILABLE',detail:e.message}); }
+  finally{ b.disabled=false; b.textContent='Check for new data'; }
+};
+$('#automon').onchange=e=>{
+  if(monTimer){ clearInterval(monTimer); monTimer=null; }
+  if(e.target.checked){ $('#checknow').click(); monTimer=setInterval(()=>$('#checknow').click(),300000); }
+};
+
+$('#btn_infer').onclick=()=>runSatellite(false);
+$('#btn_process').onclick=()=>runSatellite(true);
+
+async function runSatellite(full){
+  if(!SEL_OBS) return;
+  const id=encodeURIComponent(SEL_OBS.observation_id);
+  $('#btn_process').disabled=$('#btn_infer').disabled=true;
+  $('#procstate').textContent='running the model…';
+  renderStages([{stage:'observation received',state:'done',detail:SEL_OBS.product},
+    {stage:'preprocessing',state:'run'},{stage:'ML inference',state:'run'}]);
+  try{
+    const q=new URLSearchParams({
+      base_incident:$('#baseinc').value,
+      anchor_lat:$('#anchor_lat').value, anchor_lon:$('#anchor_lon').value,
+      gsd:$('#gsd').value,
+    });
+    const r=full
+      ? await jget(`/api/satellite/observation/${id}/process?${q}`)
+      : await jget(`/api/satellite/observation/${id}/infer`);
+    LAST=r;
+    $('#sh_mask').outerHTML=`<img id="sh_mask" src="/api/satellite/observation/${id}/image?kind=mask&t=${Date.now()}">`;
+    $('#sh_over').outerHTML=`<img id="sh_over" src="/api/satellite/observation/${id}/image?kind=overlay&t=${Date.now()}">`;
+    const inf=full?r.inference:r;
+    const st=(inf.stages||[]).map(s=>({...s,state:'done'}));
+    if(full){
+      st.push({stage:'environmental analysis',state:'done',detail:'wind + current field from context incident'});
+      st.push({stage:'drift hindcast',state:'done',detail:'reverse advection, existing engine'});
+      st.push({stage:'AIS correlation',state:'done',detail:'existing pruning + ranking'});
+    }else{
+      st.push({stage:'environmental analysis',state:'todo'},
+              {stage:'drift hindcast',state:'todo'},{stage:'AIS correlation',state:'todo'});
+    }
+    renderStages(st);
+    renderDetection(inf, full?r.incident:null);
+    if(full) renderAttribution(r.attribution);
+    $('#procstate').textContent='complete';
+  }catch(e){
+    $('#procstate').textContent='';
+    $('#sec_detect').style.display='block';
+    $('#anomalybanner').className='banner bad';
+    $('#anomalybanner').textContent=e.message;
+    $('#detecttable').innerHTML='';
+  }finally{
+    $('#btn_process').disabled=$('#btn_infer').disabled=false;
+  }
+}
+
+function renderDetection(inf, incident){
+  $('#sec_detect').style.display='block';
+  $('#anomalybanner').className='banner warn';
+  $('#anomalybanner').innerHTML=`<b>${esc(inf.class_label||'OIL-LIKE SURFACE ANOMALY')}</b><br>`+
+    esc(inf.class_caveat||'');
+  const regions=inf.regions||[];
+  const dets=incident?incident.detections:[];
+  let rows=`<tr><th>#</th><th class="n">area</th><th class="n">orientation</th>
+    <th class="n">eccentricity</th><th class="n">confidence</th></tr>`;
+  if(dets.length){
+    rows+=dets.map((d,i)=>`<tr><td>${i+1}</td><td class="n">${fmt(d.area_km2,2)} km²</td>
+      <td class="n">${fmt(d.major_axis_deg,0)}°</td><td class="n">${fmt(d.eccentricity,3)}</td>
+      <td class="n">${fmt(d.confidence*100,1)}%</td></tr>`).join('');
+  }else{
+    rows+=regions.map((r,i)=>`<tr><td>${i+1}</td><td class="n">${r.area_px} px</td>
+      <td class="n">${fmt(r.orientation_deg,0)}°</td><td class="n">${fmt(r.eccentricity,3)}</td>
+      <td class="n">—</td></tr>`).join('');
+  }
+  rows+=`<tr><td colspan="5" class="note">threshold ${fmt(inf.threshold,2)} ·
+    ${fmt((inf.anomaly_pixel_fraction||0)*100,2)}% of pixels ·
+    mean probability in mask ${fmt(inf.mean_confidence_in_mask,3)} ·
+    device ${esc(inf.device||'')} · ground truth used: no</td></tr>`;
+  $('#detecttable').innerHTML=rows;
+}
+
+function renderAttribution(att){
+  if(!att){ $('#sec_attr').style.display='none'; return; }
+  $('#sec_attr').style.display='block';
+  const f=att.funnel||{};
+  $('#attrkpi').innerHTML=`
+    <div class="card"><b>${f.total_in_scene??'—'}</b><span>in scene</span></div>
+    <div class="card"><b>${f.in_envelope??'—'}</b><span>in origin zone</span></div>
+    <div class="card"><b>${f.ranked??'—'}</b><span>candidates</span></div>`;
+  $('#attrlist').innerHTML=(att.suspects||[]).slice(0,4).map(s=>`
+    <div class="card" style="margin-bottom:8px">
+      <div class="row" style="justify-content:space-between">
+        <b>${esc(s.vessel_name||'unknown')}</b>
+        <span style="font-variant-numeric:tabular-nums">${fmt(s.posterior,3)}</span></div>
+      <div class="note">#${s.rank} · MMSI ${s.mmsi} · ${esc(s.vessel_type||'')}</div>
+      <div class="note" style="margin-top:5px">
+        spatial ${fmt(s.best_hypothesis.centroid_offset_km,1)} km ·
+        IoU ${fmt(s.best_hypothesis.iou,2)} ·
+        orientation ${fmt(s.best_hypothesis.orientation_delta_deg,0)}°</div>
+    </div>`).join('')||'<div class="note">No candidate survived pruning.</div>';
+}
+
+/* ===================== evidence & help ================= */
+async function renderEvidence(){
+  if(!INC) return;
+  if(!ALERT) ALERT=await jget(`/api/incident/${INC.incident_id}/alert`).catch(()=>null);
+  $('#evidencebody').innerHTML=`
+    <section style="max-width:900px">
+      <h2>Evidence dossier</h2>
+      <p class="note">Regenerating re-hashes every artifact, so the chain hash printed
+        inside always describes the files as they are now.</p>
+      <div class="row"><button class="primary" id="ev_dossier">Download dossier (PDF)</button>
+        <button id="ev_audit">Verify hash chain</button></div>
+    </section>
+    <section style="max-width:900px"><h2>Alert — layer 11</h2>
+      ${ALERT?`<div class="card"><div class="row" style="justify-content:space-between">
+        <b>${esc(ALERT.severity)}</b><span class="chip">${esc(ALERT.tier_label)}</span></div>
+        <div class="note" style="margin-top:6px">${esc(ALERT.tier_reasons.join(' · '))}</div>
+        <div class="note" style="margin-top:6px">${esc(ALERT.transmission_note)}</div></div>`
+      :'<div class="note">Alert unavailable.</div>'}</section>
+    <section style="max-width:900px"><h2>Audit</h2><pre class="note" id="auditout"></pre></section>`;
+  $('#ev_dossier').onclick=async()=>{
+    const b=$('#ev_dossier'); b.disabled=true; b.textContent='Generating…';
+    try{
+      const r=await fetch(`/api/incident/${INC.incident_id}/dossier`);
+      const blob=await r.blob(), u=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=u; a.download=`dossier_${INC.incident_id}.pdf`;
+      document.body.appendChild(a); a.click(); a.remove();
+      b.textContent='✓ Downloaded';
+    }catch(e){ b.textContent='failed'; }
+    finally{ setTimeout(()=>{b.disabled=false;b.textContent='Download dossier (PDF)';},2200); }
+  };
+  $('#ev_audit').onclick=async()=>{
+    $('#auditout').textContent=JSON.stringify(await jget('/api/audit'),null,2);
+  };
+}
+
+function renderHelp(){
+  $('#helpbody').innerHTML=`
+  <section style="max-width:900px">
+    <h2>What is real and what is not</h2>
+    <table>
+      <tr><th>Element</th><th>Status</th></tr>
+      <tr><td>SAR imagery in Real Satellite Replay</td><td><span class="chip real">REAL</span> published research archives on this machine</td></tr>
+      <tr><td>Segmentation mask</td><td><span class="chip real">REAL</span> produced by the checkpoint at inference time, every time you press the button</td></tr>
+      <tr><td>Per-chip acquisition timestamp</td><td><span class="chip bad">NOT AVAILABLE</span> the archives do not publish it, so none is shown</td></tr>
+      <tr><td>Geographic position of a replay chip</td><td><span class="chip syn">OPERATOR INPUT</span> research chips carry no CRS</td></tr>
+      <tr><td>Wind / current field and AIS traffic</td><td><span class="chip syn">CONTEXT</span> taken from the chosen context incident</td></tr>
+      <tr><td>Drift, pruning, ranking, dossier</td><td><span class="chip real">REAL</span> the existing engine, unchanged</td></tr>
+      <tr><td>Live / NRT — EOS-04 (Bhoonidhi), INSAT-3DS &amp; EOS-06 (MOSDAC)</td><td><span class="chip bad">AUTHENTICATION REQUIRED</span> hosts reachable, but both gate their catalogue behind a registered account — Bhoonidhi 404s on every API path, MOSDAC /opendata/ returns 401. Adapters are present and marked unverified; no non-Indian mission is carried as a substitute</td></tr>
+      <tr><td>Synthetic demo scenes</td><td><span class="chip syn">SYNTHETIC</span> generated by this project, labelled everywhere</td></tr>
+    </table>
+  </section>
+  <section style="max-width:900px">
+    <h2>Reproduce any of it from a terminal</h2>
+    <p class="note">Nothing in this console does anything the CLI cannot.</p>
+    <pre class="note">python -m samudra.satellite --list
+python -m samudra.satellite --model
+python -m samudra.satellite --live-status
+python -m samudra.satellite --live --days 14
+python -m samudra.satellite --check
+python -m samudra.satellite --observation &lt;id&gt; --process
+python -m samudra.attribution --incident demo-001
+python -m samudra.dissemination --incident demo-001 --print-message
+python scripts/train_segmenter.py --epochs 8</pre>
+  </section>
+  <section style="max-width:900px">
+    <h2>Environment variables</h2>
+    <p class="note">No credentials are stored in this repository and none are
+      hardcoded. Live/NRT stays unavailable until these are set.</p>
+    <pre class="note">BHOONIDHI_USER / BHOONIDHI_PASS   EOS-04 SAR      bhoonidhi.nrsc.gov.in
+MOSDAC_USER / MOSDAC_PASS         INSAT-3DS, EOS-06   mosdac.gov.in</pre>
+  </section>
+  <section style="max-width:900px">
+    <h2>Known limitations</h2>
+    <ul class="note">
+      <li>SAR cannot confirm oil. Every detection is reported as an oil-like
+        surface anomaly, never as confirmed oil.</li>
+      <li>Attribution needs AIS. A satellite alone cannot name a vessel.</li>
+      <li>Candidates are correlations, not causal findings.</li>
+      <li>SOS chips carry no parent-scene id, so chips from one scene can fall on
+        both sides of the train/val split; validation is optimistic and the
+        published test split is the number to quote.</li>
+      <li>The CSIRO binary set covers Southeast Asia and Australia, not Indian
+        waters.</li>
+      <li><b>Offline:</b> the whole satellite path — ingest, inference,
+        characterisation, drift, AIS, dossier — runs with no network, and the CLI
+        proves it. This <i>browser UI</i> still pulls Leaflet from a CDN and the
+        basemap tiles from Esri, so on a machine with no internet the map pages
+        lose their basemap. The Satellite page itself does not use the map.</li>
+      <li>Research chips are 256×256 with no georeferencing. The ground sample
+        distance used to size a detection in km² is an operator input, so the
+        area in km² scales with it; the pixel geometry is what the model
+        actually produced.</li>
+    </ul>
+  </section>`;
+}
+
+boot();
+</script>
+</body>
+</html>

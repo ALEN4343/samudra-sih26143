@@ -44,3 +44,10 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = [
+    # Tests that hit a real provider endpoint. Deliberately NOT mocked: the
+    # claim being tested is that the live path talks to a real catalogue, and a
+    # mock would prove the opposite of what is needed. Deselect on a box with
+    # no egress:  pytest -m "not live"
+    "live: requires network access to a satellite data provider",
+]

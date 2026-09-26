@@ -259,3 +259,57 @@ class Incident(_Base):
     funnel: FunnelCounts
     suspects: list[Suspect] = Field(default_factory=list)
     slick_age: SlickAge
+
+
+class CoastguardStation(_Base):
+    """An Indian Coast Guard establishment on the alert distribution list.
+
+    `nosdcp_tier_min` is the lowest NOS-DCP tier at which this unit is addressed:
+    a district station is on every alert, Coast Guard HQ only on Tier III.
+    """
+
+    id: str
+    name: str
+    role: Literal["NATIONAL_HQ", "REGION_HQ", "DISTRICT_HQ", "STATION"]
+    region: str
+    lat: float = Field(ge=-90, le=90)
+    lon: float = Field(ge=-180, le=180)
+    mrcc: bool = False
+    nosdcp_tier_min: int = Field(ge=1, le=3, default=1)
+
+
+class AlertRecipient(CoastguardStation):
+    """A station once it has been addressed: range, bearing and what it is asked to do."""
+
+    distance_km: float
+    bearing_deg: float = Field(ge=0, lt=360)
+    action: str
+
+
+class Alert(_Base):
+    """Layer 11 output — the artifacts/<incident_id>/alert.json envelope.
+
+    Severity follows NOS-DCP tiering (I local / II regional / III national)
+    because the tier is what determines the distribution list. `transmitted` is
+    always False: this build composes and addresses alerts, it does not send them.
+    """
+
+    alert_id: str
+    incident_id: str
+    issued_at: datetime
+    acquisition_at: datetime
+    severity: Literal["ADVISORY", "ALERT", "EMERGENCY"]
+    nosdcp_tier: int = Field(ge=1, le=3)
+    tier_label: str
+    tier_reasons: list[str]
+    position: dict[str, Any]
+    slick: dict[str, Any]
+    shore: dict[str, Any]
+    top_suspect: dict[str, Any] | None = None
+    recipients: list[AlertRecipient]
+    message: str
+    attachment: str
+    legal_basis: str
+    transmitted: bool = False
+    transmission_note: str
+    station_source: str

@@ -1,0 +1,610 @@
+{
+  "generated_at": "2026-09-22T10:05:07.285489+00:00",
+  "tag": "baseline: weighted CE only (original objective), new leakage-free protocol",
+  "representative": true,
+  "note": "Full GPU training run. Checkpoint and decision threshold selected on the validation split; the test split was evaluated once, afterwards.",
+  "protocol": {
+    "train": "85% of the published SOS train directory (hash partition)",
+    "val": "15% of the published SOS train directory; drives early stopping, checkpoint selection and the decision threshold",
+    "test": "the published SOS test directory; loaded once, at the end",
+    "selection_metric": "validation oil IoU",
+    "threshold_selected_on": "validation",
+    "known_limitation": "SOS chips carry no parent-scene id, so chips cut from one scene can fall on both sides of the train/val partition. Validation is therefore optimistic; the published test split is the number to quote."
+  },
+  "device": "cuda",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "epochs_run": 8,
+  "epochs_requested": 8,
+  "best_epoch": 4,
+  "batch_size": 8,
+  "lr": 0.0003,
+  "scheduler": "OneCycleLR",
+  "amp": true,
+  "dice_weight": 0.0,
+  "weight_power": 1.0,
+  "train_pairs": 5488,
+  "val_pairs": 967,
+  "test_pairs": 1615,
+  "oil_pixel_fraction": 0.26243092854817707,
+  "class_weights": [
+    0.5248618721961975,
+    1.4751381874084473
+  ],
+  "aux_head": {
+    "used": true,
+    "why": "Per-image labels only, and its intensity statistics differ sharply from SOS (std 8-12 vs 31-49). Mixing it into the segmentation loss would let the network discriminate dataset rather than oil, so it trains a separate image-level head sharing the backbone.",
+    "train_images": 4430
+  },
+  "classes_note": "oil vs background only. Neither SOS sensor encodes an oil-vs-lookalike distinction \u2014 checked during inventory, masks are binary.",
+  "decision_threshold": 0.7,
+  "threshold_sweep_val": {
+    "0.30": {
+      "confusion_matrix": [
+        [
+          39292439,
+          8322175
+        ],
+        [
+          567307,
+          15191391
+        ]
+      ],
+      "per_class": {
+        "background": {
+          "iou": 0.8155017106935193,
+          "dice": 0.8983761413058639,
+          "precision": 0.985767420595204,
+          "recall": 0.8252180517519264,
+          "f1": 0.8983761413058637,
+          "support_px": 47614614
+        },
+        "oil": {
+          "iou": 0.630848848378545,
+          "dice": 0.7736447789208181,
+          "precision": 0.6460692095788448,
+          "recall": 0.964000388864613,
+          "f1": 0.7736447789208181,
+          "support_px": 15758698
+        }
+      },
+      "mean_iou": 0.7231752795360322,
+      "mean_dice": 0.8360104601133409,
+      "pixel_accuracy": 0.8597283032958732
+    },
+    "0.40": {
+      "confusion_matrix": [
+        [
+          41118929,
+          6495685
+        ],
+        [
+          835759,
+          14922939
+        ]
+      ],
+      "per_class": {
+        "background": {
+          "iou": 0.848681371348782,
+          "dice": 0.9181478047021066,
+          "precision": 0.9800794848003637,
+          "recall": 0.8635779132851943,
+          "f1": 0.9181478047021064,
+          "support_px": 47614614
+        },
+        "oil": {
+          "iou": 0.6705617945013349,
+          "dice": 0.8027979530101711,
+          "precision": 0.6967272500791835,
+          "recall": 0.9469652251727902,
+          "f1": 0.8027979530101711,
+          "support_px": 15758698
+        }
+      },
+      "mean_iou": 0.7596215829250584,
+      "mean_dice": 0.8604728788561389,
+      "pixel_accuracy": 0.8843133841576719
+    },
+    "0.50": {
+      "confusion_matrix": [
+        [
+          42833069,
+          4781545
+        ],
+        [
+          1244702,
+          14513996
+        ]
+      ],
+      "per_class": {
+        "background": {
+          "iou": 0.8766612492078276,
+          "dice": 0.9342775629622896,
+          "precision": 0.9717612308480844,
+          "recall": 0.8995782051283667,
+          "f1": 0.9342775629622896,
+          "support_px": 47614614
+        },
+        "oil": {
+          "iou": 0.7066126724985679,
+          "dice": 0.828087923974045,
+          "precision": 0.752194302300205,
+          "recall": 0.9210149214103855,
+          "f1": 0.828087923974045,
+          "support_px": 15758698
+        }
+      },
+      "mean_iou": 0.7916369608531977,
+      "mean_dice": 0.8811827434681673,
+      "pixel_accuracy": 0.9049087571752601
+    },
+    "0.60": {
+      "confusion_matrix": [
+        [
+          44187933,
+          3426681
+        ],
+        [
+          1791778,
+          13966920
+        ]
+      ],
+      "per_class": {
+        "background": {
+          "iou": 0.8943768450041849,
+          "dice": 0.9442438523916915,
+          "precision": 0.9610311165287664,
+          "recall": 0.9280329984403528,
+          "f1": 0.9442438523916915,
+          "support_px": 47614614
+        },
+        "oil": {
+          "iou": 0.7279981281579061,
+          "dice": 0.8425913388389746,
+          "precision": 0.802991858902593,
+          "recall": 0.88629910922844,
+          "f1": 0.8425913388389746,
+          "support_px": 15758698
+        }
+      },
+      "mean_iou": 0.8111874865810456,
+      "mean_dice": 0.8934175956153331,
+      "pixel_accuracy": 0.9176552584154036
+    },
+    "0.70": {
+      "confusion_matrix": [
+        [
+          45281935,
+          2332679
+        ],
+        [
+          2490774,
+          13267924
+        ]
+      ],
+      "per_class": {
+        "background": {
+          "iou": 0.9037338459488629,
+          "dice": 0.949432976539241,
+          "precision": 0.9478619895723309,
+          "recall": 0.9510091796606814,
+          "f1": 0.949432976539241,
+          "support_px": 47614614
+        },
+        "oil": {
+          "iou": 0.7333838656946898,
+          "dice": 0.8461874835794331,
+          "precision": 0.8504750745852581,
+          "recall": 0.8419429067046021,
+          "f1": 0.8461874835794331,
+          "support_px": 15758698
+        }
+      },
+      "mean_iou": 0.8185588558217763,
+      "mean_dice": 0.897810230059337,
+      "pixel_accuracy": 0.9238882607240095
+    },
+    "0.80": {
+      "confusion_matrix": [
+        [
+          46224572,
+          1390042
+        ],
+        [
+          3491338,
+          12267360
+        ]
+      ],
+      "per_class": {
+        "background": {
+          "iou": 0.9044850979392772,
+          "dice": 0.949847388060913,
+          "precision": 0.9297742312269854,
+          "recall": 0.9708063999006692,
+          "f1": 0.9498473880609128,
+          "support_px": 47614614
+        },
+        "oil": {
+          "iou": 0.715350515548081,
+          "dice": 0.834057539918616,
+          "precision": 0.8982206132615852,
+          "recall": 0.7784500978443778,
+          "f1": 0.834057539918616,
+          "support_px": 15758698
+        }
+      },
+      "mean_iou": 0.8099178067436792,
+      "mean_dice": 0.8919524639897645,
+      "pixel_accuracy": 0.9229742008749677
+    },
+    "0.90": {
+      "confusion_matrix": [
+        [
+          47059207,
+          555407
+        ],
+        [
+          5270443,
+          10488255
+        ]
+      ],
+      "per_class": {
+        "background": {
+          "iou": 0.8898393926284319,
+          "dice": 0.9417090109343343,
+          "precision": 0.8992838094655706,
+          "recall": 0.9883353669526755,
+          "f1": 0.9417090109343343,
+          "support_px": 47614614
+        },
+        "oil": {
+          "iou": 0.6428949059724698,
+          "dice": 0.7826366782626605,
+          "precision": 0.9497080769042008,
+          "recall": 0.6655533978758905,
+          "f1": 0.7826366782626604,
+          "support_px": 15758698
+        }
+      },
+      "mean_iou": 0.7663671493004509,
+      "mean_dice": 0.8621728445984974,
+      "pixel_accuracy": 0.9080709242401597
+    }
+  },
+  "validation": {
+    "confusion_matrix": [
+      [
+        45281935,
+        2332679
+      ],
+      [
+        2490774,
+        13267924
+      ]
+    ],
+    "per_class": {
+      "background": {
+        "iou": 0.9037338459488629,
+        "dice": 0.949432976539241,
+        "precision": 0.9478619895723309,
+        "recall": 0.9510091796606814,
+        "f1": 0.949432976539241,
+        "support_px": 47614614
+      },
+      "oil": {
+        "iou": 0.7333838656946898,
+        "dice": 0.8461874835794331,
+        "precision": 0.8504750745852581,
+        "recall": 0.8419429067046021,
+        "f1": 0.8461874835794331,
+        "support_px": 15758698
+      }
+    },
+    "mean_iou": 0.8185588558217763,
+    "mean_dice": 0.897810230059337,
+    "pixel_accuracy": 0.9238882607240095,
+    "threshold": 0.7,
+    "per_sensor": {
+      "palsar": {
+        "confusion_matrix": [
+          [
+            22388840,
+            1058861
+          ],
+          [
+            873653,
+            4776630
+          ]
+        ],
+        "per_class": {
+          "background": {
+            "iou": 0.9205424994019659,
+            "dice": 0.9586275749571924,
+            "precision": 0.962443707129756,
+            "recall": 0.9548415855354007,
+            "f1": 0.9586275749571924,
+            "support_px": 23447701
+          },
+          "oil": {
+            "iou": 0.7119581872143451,
+            "dice": 0.8317471682796475,
+            "precision": 0.8185480878986875,
+            "recall": 0.8453788951810024,
+            "f1": 0.8317471682796475,
+            "support_px": 5650283
+          }
+        },
+        "mean_iou": 0.8162503433081555,
+        "mean_dice": 0.89518737161842,
+        "pixel_accuracy": 0.9335859831389006
+      },
+      "sentinel": {
+        "confusion_matrix": [
+          [
+            22893095,
+            1273818
+          ],
+          [
+            1617121,
+            8491294
+          ]
+        ],
+        "per_class": {
+          "background": {
+            "iou": 0.8878787159526705,
+            "dice": 0.9406099114843031,
+            "precision": 0.9340225724652936,
+            "recall": 0.9472908269252263,
+            "f1": 0.9406099114843031,
+            "support_px": 24166913
+          },
+          "oil": {
+            "iou": 0.7460130187108277,
+            "dice": 0.8545331686720732,
+            "precision": 0.8695541843247676,
+            "recall": 0.8400222982534848,
+            "f1": 0.8545331686720732,
+            "support_px": 10108415
+          }
+        },
+        "mean_iou": 0.8169458673317491,
+        "mean_dice": 0.8975715400781881,
+        "pixel_accuracy": 0.9156553950410045
+      }
+    }
+  },
+  "segmentation": {
+    "confusion_matrix": [
+      [
+        73347467,
+        4855765
+      ],
+      [
+        4270673,
+        23366735
+      ]
+    ],
+    "per_class": {
+      "background": {
+        "iou": 0.8893415074743944,
+        "dice": 0.9414301267992943,
+        "precision": 0.9449784161279825,
+        "recall": 0.9379083846560203,
+        "f1": 0.9414301267992943,
+        "support_px": 78203232
+      },
+      "oil": {
+        "iou": 0.7191275225722031,
+        "dice": 0.836619172376725,
+        "precision": 0.8279470280804323,
+        "recall": 0.8454749085008261,
+        "f1": 0.836619172376725,
+        "support_px": 27637408
+      }
+    },
+    "mean_iou": 0.8042345150232988,
+    "mean_dice": 0.8890246495880096,
+    "pixel_accuracy": 0.9137718932916505,
+    "threshold": 0.7,
+    "per_sensor": {
+      "palsar": {
+        "confusion_matrix": [
+          [
+            40250279,
+            2059461
+          ],
+          [
+            1617059,
+            6929137
+          ]
+        ],
+        "per_class": {
+          "background": {
+            "iou": 0.9163034848043446,
+            "dice": 0.9563239769382349,
+            "precision": 0.9613765986268341,
+            "recall": 0.9513241868184489,
+            "f1": 0.9563239769382348,
+            "support_px": 42309740
+          },
+          "oil": {
+            "iou": 0.6533434939485597,
+            "dice": 0.7903300147124626,
+            "precision": 0.7708807313443098,
+            "recall": 0.8107861088137928,
+            "f1": 0.7903300147124626,
+            "support_px": 8546196
+          }
+        },
+        "mean_iou": 0.7848234893764522,
+        "mean_dice": 0.8733269958253487,
+        "pixel_accuracy": 0.9277071608710534
+      },
+      "sentinel": {
+        "confusion_matrix": [
+          [
+            33097188,
+            2796304
+          ],
+          [
+            2653614,
+            16437598
+          ]
+        ],
+        "per_class": {
+          "background": {
+            "iou": 0.8586166753997044,
+            "dice": 0.9239308855496573,
+            "precision": 0.9257747001032313,
+            "recall": 0.922094400845702,
+            "f1": 0.9239308855496572,
+            "support_px": 35893492
+          },
+          "oil": {
+            "iou": 0.7510033573476315,
+            "dice": 0.8577977354483538,
+            "precision": 0.8546158756553922,
+            "recall": 0.8610033768416588,
+            "f1": 0.8577977354483538,
+            "support_px": 19091212
+          }
+        },
+        "mean_iou": 0.804810016373668,
+        "mean_dice": 0.8908643104990055,
+        "pixel_accuracy": 0.9008830164840025
+      }
+    }
+  },
+  "classification": {
+    "confusion_matrix": [
+      [
+        702,
+        46
+      ],
+      [
+        49,
+        311
+      ]
+    ],
+    "per_class": {
+      "no_oil": {
+        "iou": 0.8808030112923463,
+        "dice": 0.9366244162775184,
+        "precision": 0.9347536617842876,
+        "recall": 0.9385026737967914,
+        "f1": 0.9366244162775184,
+        "support_px": 748
+      },
+      "oil": {
+        "iou": 0.7660098522167488,
+        "dice": 0.8675034867503487,
+        "precision": 0.8711484593837535,
+        "recall": 0.8638888888888889,
+        "f1": 0.8675034867503487,
+        "support_px": 360
+      }
+    },
+    "mean_iou": 0.8234064317545475,
+    "mean_dice": 0.9020639515139335,
+    "pixel_accuracy": 0.9142599277978339
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "seg_loss": 0.3491336529526001,
+      "aux_loss": 0.37561053091947955,
+      "seconds": 161.50922012329102,
+      "val_mean_iou": 0.6507488513761303,
+      "val_oil_iou": 0.5552835017526496,
+      "val_oil_dice": 0.7140608141562621,
+      "val_oil_precision": 0.5657719337910929,
+      "val_oil_recall": 0.967693333548241,
+      "lr": 0.0001651546735650786
+    },
+    {
+      "epoch": 2,
+      "seg_loss": 0.2746134937005036,
+      "aux_loss": 0.24365204023115836,
+      "seconds": 140.14717054367065,
+      "val_mean_iou": 0.6765174022102327,
+      "val_oil_iou": 0.5818252041617817,
+      "val_oil_dice": 0.7356377969335673,
+      "val_oil_precision": 0.5921006474142086,
+      "val_oil_recall": 0.9710366935136393,
+      "lr": 0.00029999995635085475
+    },
+    {
+      "epoch": 3,
+      "seg_loss": 0.2551340130497172,
+      "aux_loss": 0.17359378553774893,
+      "seconds": 160.05079436302185,
+      "val_mean_iou": 0.7612066580069845,
+      "val_oil_iou": 0.6705547278701223,
+      "val_oil_dice": 0.8027928887131374,
+      "val_oil_precision": 0.705240482389494,
+      "val_oil_recall": 0.9316655474963731,
+      "lr": 0.0002798666814420502
+    },
+    {
+      "epoch": 4,
+      "seg_loss": 0.24210281347524668,
+      "aux_loss": 0.13926713895215584,
+      "seconds": 145.2930555343628,
+      "val_mean_iou": 0.7916369608531977,
+      "val_oil_iou": 0.7066126724985679,
+      "val_oil_dice": 0.828087923974045,
+      "val_oil_precision": 0.752194302300205,
+      "val_oil_recall": 0.9210149214103855,
+      "lr": 0.00022497592649600308
+    },
+    {
+      "epoch": 5,
+      "seg_loss": 0.22939781626311753,
+      "aux_loss": 0.10630868465989915,
+      "seconds": 151.62790250778198,
+      "val_mean_iou": 0.7696885391394835,
+      "val_oil_iou": 0.6805189218418748,
+      "val_oil_dice": 0.8098914127024711,
+      "val_oil_precision": 0.7175183170713297,
+      "val_oil_recall": 0.9295630895395038,
+      "lr": 0.0001500356249724414
+    },
+    {
+      "epoch": 6,
+      "seg_loss": 0.2156982804287453,
+      "aux_loss": 0.0772565989327446,
+      "seconds": 149.15746879577637,
+      "val_mean_iou": 0.7605682659697715,
+      "val_oil_iou": 0.6720111941427893,
+      "val_oil_dice": 0.8038357595892982,
+      "val_oil_precision": 0.6968685192740484,
+      "val_oil_recall": 0.94959589935666,
+      "lr": 7.512597014514835e-05
+    },
+    {
+      "epoch": 7,
+      "seg_loss": 0.20592415318675014,
+      "aux_loss": 0.0476365757728696,
+      "seconds": 137.28319358825684,
+      "val_mean_iou": 0.7573009896169787,
+      "val_oil_iou": 0.669146589686465,
+      "val_oil_dice": 0.8017828917137332,
+      "val_oil_precision": 0.6895536048002471,
+      "val_oil_recall": 0.957645929885832,
+      "lr": 2.031894353039121e-05
+    },
+    {
+      "epoch": 8,
+      "seg_loss": 0.2002994916116705,
+      "aux_loss": 0.035926723785721495,
+      "seconds": 140.69042372703552,
+      "val_mean_iou": 0.7518539022893549,
+      "val_oil_iou": 0.6633342203854911,
+      "val_oil_dice": 0.797595831620368,
+      "val_oil_precision": 0.6810891217148546,
+      "val_oil_recall": 0.9621869776297509,
+      "lr": 3.0004364914525946e-07
+    }
+  ],
+  "checkpoint": "artifacts\\training\\seg_baseline.pt",
+  "qualitative_panel": "artifacts\\training\\qualitative_baseline.png"
+}

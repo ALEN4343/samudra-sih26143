@@ -1,0 +1,145 @@
+{
+  "satellite": "EOS-04",
+  "sensor": "SAR",
+  "product": "E04_SAR_MRS_05JUL2026_186011742641_24220_STUC00ZTD_191_16_DH_D_R_N22565_E069445",
+  "product_id": "2651503181",
+  "generating_agency": "NRSC",
+  "product_type": "L2B-ARD-PRODUCT",
+  "acquired_at": "2026-07-05T01:17:53.956000Z",
+  "acquisition_time_known": true,
+  "acquisition_time_source": "BAND_META SceneCenterTime; timezone confirmed UTC against the product's published sun elevation",
+  "incidence_angle_deg": 37.85365,
+  "polarisations": [
+    "HH",
+    "HV"
+  ],
+  "imaging_mode": "MRS",
+  "orbit_node": "DESCENDING",
+  "resolution_m": 18.0,
+  "rtc_applied": true,
+  "dem_source": "COPERNICUS30",
+  "calibration_constant_db": {
+    "HH": 69.259,
+    "HV": 69.259
+  },
+  "nesz_db": {
+    "HH": -27.57,
+    "HV": -28.89
+  },
+  "source": "NRSC Bhoonidhi (ISRO) open data, direct download",
+  "source_url": "https://bhoonidhi.nrsc.gov.in",
+  "licence": "NRSC OpenData - attribution to NRSC/ISRO required",
+  "band": "C-band",
+  "polarisation": "HH",
+  "region": "22.57N-22.71N, 69.34E-69.82E",
+  "footprint": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          69.339541,
+          22.570092
+        ],
+        [
+          69.819789,
+          22.56836
+        ],
+        [
+          69.82063,
+          22.71014
+        ],
+        [
+          69.339889,
+          22.711884
+        ],
+        [
+          69.339541,
+          22.570092
+        ]
+      ]
+    ]
+  },
+  "calibration": {
+    "polarisation": "HH",
+    "calibration_constant_db": 69.259,
+    "equation": "sigma0_dB = 20*log10(DN) - Calibration_Constant",
+    "noise_subtracted": false,
+    "noise_bias_dn2": 14768.912,
+    "nesz_db": -27.57,
+    "shape": [
+      872,
+      2743
+    ],
+    "valid_fraction": 1.0,
+    "product_mask_excluded_fraction": 0.0,
+    "aoi_lonlat": [
+      69.34,
+      22.57,
+      69.82,
+      22.71
+    ],
+    "aoi_is_operator_input": true,
+    "sigma0_db_percentiles": {
+      "1": -21.06,
+      "5": -19.13,
+      "50": -14.87,
+      "95": -10.87,
+      "99": -9.17
+    }
+  },
+  "units": "sigma0 dB",
+  "calibrated": true,
+  "verification": {
+    "calibration": {
+      "pass": true,
+      "incidence_angle_deg": 37.85365,
+      "equation": "sigma0_dB = 20*log10(DN) - Calibration_Constant",
+      "checks": [
+        {
+          "polarisation": "HH",
+          "identity": "beta0",
+          "published_delta_db": 2.119,
+          "expected_delta_db": 2.1208,
+          "residual_db": 0.0018,
+          "pass": true
+        },
+        {
+          "polarisation": "HH",
+          "identity": "gamma0",
+          "published_delta_db": 1.026,
+          "expected_delta_db": 1.026,
+          "residual_db": 0.0,
+          "pass": true
+        },
+        {
+          "polarisation": "HV",
+          "identity": "beta0",
+          "published_delta_db": 2.119,
+          "expected_delta_db": 2.1208,
+          "residual_db": 0.0018,
+          "pass": true
+        },
+        {
+          "polarisation": "HV",
+          "identity": "gamma0",
+          "published_delta_db": 1.026,
+          "expected_delta_db": 1.026,
+          "residual_db": 0.0,
+          "pass": true
+        }
+      ],
+      "detail": "The published sigma0, gamma0 and beta0 constants satisfy both defining identities at the published incidence angle, so the calibration equation is confirmed by the product."
+    },
+    "timestamp": {
+      "pass": true,
+      "published_sun_elevation_deg": 6.63773,
+      "modelled_if_utc_deg": 7.5,
+      "modelled_if_ist_deg": -44.26,
+      "residual_if_utc_deg": 0.87,
+      "residual_if_ist_deg": 50.9,
+      "conclusion": "SceneCenterTime is UTC - reading it as UTC reproduces the product's own sun elevation; reading it as IST does not."
+    },
+    "pass": true
+  },
+  "provenance_note": "Real EOS-04 (ISRO) C-band SAR from NRSC Bhoonidhi. Pixels are calibrated sigma-nought in dB using the product's own published constant, with the calibration equation confirmed against the product's sigma0/gamma0/beta0 identities and the acquisition timezone confirmed against its published sun elevation. Georeferencing is the product's own UTM grid. The marine AOI is an OPERATOR INPUT, not a product value."
+}

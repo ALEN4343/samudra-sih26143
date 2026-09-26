@@ -147,11 +147,26 @@ def _integrate(
     rng: np.random.Generator,
     snapshot_interval_s: float | None = None,
     snapshots: list | None = None,
+    land=None,
+    beached_out: list | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Euler integration with diffusion, forward or backward in time.
 
     `t_from` is per-particle so a line source can release over a window. Direction
     is inferred from the sign of (t_to - t_from).
+
+    `land` is an optional `impact.landmask.LandMask`. With one, a particle that
+    steps into a land cell is BEACHED: reverted to its last water position and
+    frozen there for the rest of the run. Without one, the field has no idea
+    where the coast is and oil advects straight over Gujarat — which was fine
+    while every demo AOI was open ocean and is wrong the moment one is not.
+
+    Beaching is deliberately NOT applied when integrating backwards. The reverse
+    pass asks "where could this oil have come from", and a hypothetical origin
+    that lies inland is already excluded by the fact that no vessel track goes
+    there; freezing reverse particles at the coast would instead pile the origin
+    envelope up against the shoreline and bias every hindcast toward coastal
+    releases.
     """
     d = cfg()["drift"]
     dt = d["timestep_min"] * 60.0
@@ -163,6 +178,8 @@ def _integrate(
 
     backward = t_to < float(t_from.max())
     sign = -1.0 if backward else 1.0
+    beaching = (land is not None) and getattr(land, "available", False) and not backward
+    beached = np.zeros(lat.shape, dtype=bool)
 
     t_now = float(t_from.max()) if backward else float(t_from.min())
     next_snap = t_now
@@ -185,8 +202,11 @@ def _integrate(
             raise RuntimeError("Drift integration failed to terminate — check timestamps.")
 
         step = min(dt, abs(t_to - t_now))
-        # A particle only moves once its own release time has been passed.
+        # A particle only moves once its own release time has been passed, and
+        # never again once it has beached.
         live = (t_from >= t_now) if backward else (t_from <= t_now)
+        if beaching:
+            live &= ~beached
         if live.any():
             vu, vv = drift_velocity(env, t_now, lat[live], lon[live])
             x, y = proj.to_m(lon[live], lat[live])
@@ -195,9 +215,27 @@ def _integrate(
             sigma = math.sqrt(2.0 * k * step)
             x = x + sign * vu * step + rng.normal(0.0, sigma, size=x.shape)
             y = y + sign * vv * step + rng.normal(0.0, sigma, size=y.shape)
-            lon[live], lat[live] = proj.to_deg(x, y)
+            new_lon, new_lat = proj.to_deg(x, y)
+
+            if beaching:
+                hit = land.is_land(new_lat, new_lon)
+                if hit.any():
+                    # Revert to the last WATER position and freeze. Keeping the
+                    # inland position would put the polygon on dry ground, which
+                    # is the bug this whole path exists to prevent.
+                    keep = ~hit
+                    idx = np.nonzero(live)[0]
+                    lon[idx[keep]] = new_lon[keep]
+                    lat[idx[keep]] = new_lat[keep]
+                    beached[idx[hit]] = True
+                else:
+                    lon[live], lat[live] = new_lon, new_lat
+            else:
+                lon[live], lat[live] = new_lon, new_lat
         t_now += sign * step
 
+    if beached_out is not None:
+        beached_out.append(beached)
     return lat, lon
 
 
@@ -223,6 +261,7 @@ def advect_forward(
     release_duration_min: float | None = None,
     seed: int = 0,
     proj: Projector | None = None,
+    land=None,
 ) -> tuple[np.ndarray, np.ndarray, Polygon]:
     """Advect a release forward. Returns (lat, lon, polygon).
 
@@ -264,9 +303,15 @@ def advect_forward(
         p_lon = np.full(n_particles, release_lon) + rng.normal(0, 0.0015, n_particles)
         p_t = np.full(n_particles, t0)
 
-    lat, lon = _integrate(proj, env_field, p_lat, p_lon, p_t, t1, rng)
+    beached_out: list = []
+    lat, lon = _integrate(proj, env_field, p_lat, p_lon, p_t, t1, rng,
+                          land=land, beached_out=beached_out)
     age_h = (t1 - t0) / 3600.0
     poly = particles_to_polygon(proj, lat, lon, fay_radius_m(age_h))
+    # Particle beaching fixes where the oil IS; this fixes where it is DRAWN.
+    # The Fay buffer around beached particles spills inland regardless.
+    if land is not None and getattr(land, "available", False):
+        poly = land.clip_to_water(poly)
     return lat, lon, poly
 
 

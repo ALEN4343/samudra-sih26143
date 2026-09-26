@@ -196,3 +196,18 @@ trust:
 
   ais_gap_min: 15.0
 
+
+
+# Layer 11 — dissemination thresholds (CLAUDE.md 5.8).
+#
+# Tiers are NOS-DCP tiers, not an invented scale: the tier decides who is on the
+# distribution list, so it has to match the plan the Coast Guard operates under.
+# These are volume-proxy thresholds — NOS-DCP is written in tonnes and SAR gives
+# area, so area stands in for volume. Say that out loud rather than implying the
+# system measures tonnage.
+dissemination:
+  tier2_area_km2: 25.0          # >= this -> Tier II, regional HQ + MRCC added
+  tier3_area_km2: 150.0         # >= this -> Tier III, Coast Guard HQ added
+  tier3_shore_eta_hours: 24.0   # shoreline contact sooner than this -> Tier III
+  tier2_shore_eta_hours: 72.0   # shoreline contact within the forecast -> Tier II
+  max_recipients: 6

@@ -1,0 +1,84 @@
+{
+  "incident": "demo-001",
+  "read_only": true,
+  "threshold": 0.8,
+  "checkpoint": {
+    "arch": "deeplabv3plus_resnet50",
+    "num_classes": 2,
+    "input_size": 256,
+    "normalisation": "imagenet",
+    "mask_threshold": 128,
+    "epoch": 7,
+    "val_oil_iou": 0.7145453241564629,
+    "selected_on": "validation split (never test)",
+    "representative": true
+  },
+  "anomaly_pixel_fraction": 0.0018465675142529583,
+  "max_probability": 0.9997699856758118,
+  "mean_probability_in_mask": 0.983940839767456,
+  "gates": {
+    "wind_min_ms": 4.135996149797359,
+    "wind_max_ms": 8.819490698992919,
+    "wind_mean_ms": 6.679409917706592,
+    "gate_lo": 3.0,
+    "gate_hi": 10.0,
+    "fraction_in_band": 1.0,
+    "land_fraction": 0.0007611132225469465
+  },
+  "polygons": [
+    {
+      "slick_id": "slick-000",
+      "scene_id": "demo-001",
+      "area_km2": 260.3250955067296,
+      "perimeter_km": 80.09288032844329,
+      "shape_complexity": 1.4003318345379538,
+      "eccentricity": 0.8171722398124641,
+      "major_axis_deg": 133.48629273973498,
+      "centroid_lat": 17.69723005221846,
+      "centroid_lon": 70.15432779599905,
+      "mean_sigma0_db": -21.67250633239746,
+      "contrast_db": 7.084272384643555,
+      "edge_gradient": 2.395907402038574,
+      "cnn_oil_prob": 0.987907886505127
+    },
+    {
+      "slick_id": "slick-001",
+      "scene_id": "demo-001",
+      "area_km2": 205.60877208132752,
+      "perimeter_km": 84.36689884901192,
+      "shape_complexity": 1.659763974526345,
+      "eccentricity": 0.9482937019474276,
+      "major_axis_deg": 54.876438150141716,
+      "centroid_lat": 18.513982552449825,
+      "centroid_lon": 70.53334519234433,
+      "mean_sigma0_db": -21.86748695373535,
+      "contrast_db": 7.279253005981445,
+      "edge_gradient": 2.4124715328216553,
+      "cnn_oil_prob": 0.9800856113433838
+    },
+    {
+      "slick_id": "slick-002",
+      "scene_id": "demo-001",
+      "area_km2": 75.46509290279275,
+      "perimeter_km": 69.87013509774503,
+      "shape_complexity": 2.268890806997652,
+      "eccentricity": 0.9866714763288397,
+      "major_axis_deg": 42.092211708305854,
+      "centroid_lat": 16.124720664029887,
+      "centroid_lon": 69.72398188449492,
+      "mean_sigma0_db": -24.650896072387695,
+      "contrast_db": 10.062662124633789,
+      "edge_gradient": 2.626746654510498,
+      "cnn_oil_prob": 0.9814624786376953
+    }
+  ],
+  "post_hoc_vs_planted": {
+    "planted_area_km2": 89.76774317960951,
+    "planted_axis_deg": 41.899384017479576,
+    "best_detected_area_km2": 75.46509290279275,
+    "best_detected_axis_deg": 42.092211708305854,
+    "iou_vs_planted": 0.8406559683053709,
+    "centroid_offset_km": 0.04361807812329255
+  },
+  "post_hoc_note": "The planted slick was read after inference, to report accuracy. It was never an input; see scripts/eval_scene.py."
+}

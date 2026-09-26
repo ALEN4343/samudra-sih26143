@@ -30,7 +30,14 @@ GENESIS = "0" * 64
 #                        hashed and every later verify reports BROKEN. The
 #                        dossier's own integrity comes from the chain hash
 #                        printed inside it, checked against audit.log.
-EXCLUDE = {"ground_truth.json", "audit.log"}
+#   alert.json         - same category as the dossier. Layer 11 composes the
+#                        alert on demand and stamps it with issued_at, so its
+#                        bytes change on every compose while the artifacts it
+#                        describes do not. Hashing it would report BROKEN every
+#                        time anyone opened the dashboard. The alert cites the
+#                        dossier, which carries the chain hash; that is where its
+#                        integrity comes from.
+EXCLUDE = {"ground_truth.json", "audit.log", "alert.json"}
 EXCLUDE_PREFIXES = ("dossier_",)
 
 

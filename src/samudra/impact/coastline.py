@@ -1,18 +1,27 @@
 """Coastline intersection and ETA — CLAUDE.md layer 8.
 
-Prefers a real Natural Earth coastline when one is present on disk. This
-environment sits behind TLS interception, so the download fails certificate
-verification; rather than pretend otherwise, a simplified coastline for the demo
-region is bundled and the source actually used is reported in every result.
+Uses a real Natural Earth coastline when one is present on disk, and reports in
+every result which source was actually used.
 
-Drop `ne_50m_coastline.geojson` into data/raw/ and it is picked up automatically
-with no code change.
+The TLS-interception problem that previously blocked the download is solved:
+`truststore` routes verification through the Windows certificate store, which
+trusts this machine's interception CA where Python's bundled CA set does not.
+Verification stays ON — nothing here disables it. Fetch with
+`scripts/fetch_coastline.py`.
+
+Absent any file, a simplified **west-coast-only** outline is bundled so the
+module still runs. That fallback cannot serve the east coast, the Andamans or
+Lakshadweep, and `load_coastline()` says so in its `source` string rather than
+letting a demo quietly report shoreline impacts against a coast that is not
+there.
 """
 
 from __future__ import annotations
 
 import json
+import math
 from datetime import datetime, timedelta
+from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
@@ -24,9 +33,15 @@ from samudra.geo import Projector
 # Beyond this range the loaded coastline is simply not the coast this AOI sits on.
 COVERAGE_LIMIT_KM = 800.0
 
+# Most detailed first. Natural Earth's "10m" is 1:10,000,000 — finer than
+# "50m", not coarser — and the difference is not cosmetic here: at 1:50m the
+# Lakshadweep group is dropped entirely, putting the nearest modelled shore
+# 71 km from Kavaratti instead of 0.3 km. Small islands are precisely the
+# ecologically sensitive landfalls an impact ETA exists to warn about, so the
+# extra 0.5 s of load is worth paying.
 COASTLINE_PATHS = (
-    Path("data/raw/ne_50m_coastline.geojson"),
     Path("data/raw/ne_10m_coastline.geojson"),
+    Path("data/raw/ne_50m_coastline.geojson"),
     Path("data/raw/coastline.geojson"),
 )
 
@@ -46,19 +61,74 @@ _INDIA_WEST_COAST = [
 ]
 
 
+@lru_cache(maxsize=4)
+def _parse_coastline(path_str: str, mtime: float, size: int):
+    """Parse one coastline file. Cached — see `load_coastline`.
+
+    Keyed on (path, mtime, size) rather than path alone, so replacing the file
+    on disk invalidates the entry instead of serving a stale geometry for the
+    life of the process.
+    """
+    p = Path(path_str)
+    gj = json.loads(p.read_text())
+    feats = gj["features"] if gj.get("type") == "FeatureCollection" else [gj]
+    geoms = [shape(f["geometry"] if "geometry" in f else f) for f in feats]
+    return unary_union(geoms)
+
+
 def load_coastline() -> dict:
-    """Return {'geometry': MultiLineString, 'source': str}."""
+    """Return {'geometry': MultiLineString, 'source': str}.
+
+    Parsing is cached: the 10m file is 10 MB and its `unary_union` costs ~0.6 s
+    per call. Callers get a fresh dict each time, so the cached geometry is
+    never handed out as a mutable shared object.
+
+    The cache is not what made switching to a real coastline affordable, and it
+    is worth recording which fix actually mattered. Profiling put 142 of 212
+    test-suite seconds in a single call to `detection.preprocess.land_mask`,
+    which buffers and rasterises the geometry — the whole world's, once a real
+    file is present. Clipping to the AOI before buffering is the fix; caching
+    the parse was worth a few seconds.
+    """
     for p in COASTLINE_PATHS:
         if p.exists():
-            gj = json.loads(p.read_text())
-            feats = gj["features"] if gj.get("type") == "FeatureCollection" else [gj]
-            geoms = [shape(f["geometry"] if "geometry" in f else f) for f in feats]
-            return {"geometry": unary_union(geoms), "source": f"Natural Earth ({p})"}
+            st = p.stat()
+            return {"geometry": _parse_coastline(str(p), st.st_mtime, st.st_size),
+                    "source": f"Natural Earth ({p})"}
 
     return {
         "geometry": MultiLineString([LineString(_INDIA_WEST_COAST)]),
-        "source": "bundled simplified Indian west coast (Natural Earth unavailable)",
+        "source": ("bundled simplified Indian WEST COAST ONLY — no Natural "
+                   "Earth file on disk; east coast, Andamans and Lakshadweep "
+                   "are not represented. Run scripts/fetch_coastline.py."),
     }
+
+
+def _clip_near(geom, forecasts, limit_km: float):
+    """Coastline within `limit_km` of the forecast polygons, in degrees.
+
+    Returns the input unchanged when the clip would be empty, so an AOI with no
+    coast nearby still reaches the out-of-coverage guard and is reported as
+    "this coastline does not cover this AOI" rather than silently intersecting
+    an empty geometry and reporting no shore contact.
+    """
+    from shapely.geometry import box
+
+    xs, ys = [], []
+    for f in forecasts:
+        x0, y0, x1, y1 = f["geometry"].bounds
+        xs += [x0, x1]
+        ys += [y0, y1]
+    # Degrees of longitude shrink with latitude; use the worst case in the AOI.
+    lat = max(abs(min(ys)), abs(max(ys)))
+    dlat = limit_km / 110.574
+    dlon = limit_km / max(111.320 * math.cos(math.radians(min(lat, 89.0))), 1e-6)
+    window = box(min(xs) - dlon, min(ys) - dlat, max(xs) + dlon, max(ys) + dlat)
+    try:
+        clipped = geom.intersection(window)
+    except Exception:  # noqa: BLE001 - topology error on a pathological input
+        return geom
+    return geom if clipped.is_empty else clipped
 
 
 def coastline_impacts(
@@ -80,6 +150,13 @@ def coastline_impacts(
         c = forecasts[0]["geometry"].centroid
         proj = Projector(c.y, c.x)
 
+    # Clip to the neighbourhood before projecting. A real Natural Earth file is
+    # the WHOLE WORLD's coastline; projecting all of it to metres for a 50 km
+    # AOI took the test suite from 60 s to 226 s and scales with nothing useful.
+    # The window is COVERAGE_LIMIT_KM wide so the out-of-coverage guard below
+    # still sees any coast it would have seen unclipped — clipping tighter than
+    # that would manufacture a "no coastline here" answer.
+    geom = _clip_near(geom, forecasts, COVERAGE_LIMIT_KM)
     coast_m = _to_m(proj, geom)
 
     # Guard against reporting a distance to a coastline on the wrong ocean. The

@@ -19,3 +19,15 @@ data/models/*.pt
 # scripts/train_segmenter.py, including audit.log — the hash chain is verified
 # within a run, not carried across checkouts.
 artifacts/
+
+# Calibrated EOS-04 rasters dropped in for replay: tens of MB, and regenerated
+# from the NRSC product by `python -m samudra.ingest.eos04`. The sidecar JSON
+# beside each one is the provenance record and is small enough to keep.
+data/satellite/incoming/*.tif
+
+# Model checkpoints are ~154 MB each - over GitHub's 100 MB per-file hard
+# limit, so a push containing one is rejected outright. They are build output,
+# not source: retrain with scripts/train_segmenter.py, or attach them to a
+# GitHub Release and link from the README.
+*.pt
+training_runs/**/*.pt

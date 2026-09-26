@@ -1,0 +1,1106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SAMUDRA — Oil Discharge Attribution</title>
+<link rel="stylesheet" href="/static/vendor/leaflet.css"/>
+<script src="/static/vendor/leaflet.js"></script>
+<script>
+  /* Vendored Leaflet is the primary copy so the console works with no network.
+     If this checkout lacks web/vendor/, fall back to the CDN rather than
+     rendering a blank page. */
+  if (typeof L === "undefined") {
+    document.write('<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>');
+    document.write('<scr'+'ipt src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></scr'+'ipt>');
+  }
+</script>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --line:#30363d; --txt:#e6edf3; --dim:#8b949e;
+    --slick:#ff6b4a; --env:#ffd166; --suspect:#ff3b30; --cand:#58a6ff; --filt:#3d4450;
+    --ok:#3fb950; --fc:#7ee787;
+    --s-insat:#4493f8; --s-ocm:#2ea043; --s-wind:#a371f7; --s-curr:#39c5cf; --s-sar:#db6d28;
+    --t1:#3fb950; --t2:#d29922; --t3:#f85149;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);overflow:hidden;
+    font:13px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+  #app{display:flex;height:100vh}
+  #mapwrap{flex:1;position:relative;min-width:0}
+  #map{position:absolute;inset:0;background:#0b1220}
+  #side{width:452px;min-width:452px;background:var(--panel);border-left:1px solid var(--line);
+    display:flex;flex-direction:column;overflow:hidden}
+
+  header{padding:13px 16px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:15px;letter-spacing:.14em;font-weight:600;display:flex;
+    align-items:center;gap:8px}
+  .badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:9.5px;
+    letter-spacing:.06em;background:#2d333b;color:var(--dim)}
+  .sub{color:var(--dim);font-size:11px;margin-top:3px;font-variant-numeric:tabular-nums}
+  #scroll{overflow-y:auto;padding:14px 16px;flex:1}
+  section{margin-bottom:20px}
+  h2{font-size:10px;letter-spacing:.14em;color:var(--dim);margin:0 0 8px;font-weight:600;
+    text-transform:uppercase;display:flex;justify-content:space-between;align-items:center}
+  h2 em{font-style:normal;font-size:9px;letter-spacing:.04em;color:#6e7681}
+
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:12px;margin:0}
+  .kv dt{color:var(--dim)}
+  .kv dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+  .note{font-size:10.5px;color:var(--dim);margin-top:6px;line-height:1.45}
+  .warn{font-size:10.5px;color:#d29922;margin-top:6px;line-height:1.45}
+
+  .funnel{display:flex;gap:4px}
+  .fstep{flex:1;background:#1c2128;border:1px solid var(--line);border-radius:4px;
+    padding:8px 6px;text-align:center}
+  .fstep b{display:block;font-size:20px;line-height:1.1}
+  .fstep span{font-size:9px;color:var(--dim);letter-spacing:.05em}
+  .fstep.last{border-color:var(--suspect)}
+
+  .card{border:1px solid var(--line);border-radius:5px;padding:10px 11px;margin-bottom:8px;
+    cursor:pointer;background:#1c2128;transition:border-color .12s}
+  .card:hover{border-color:#4b5563}
+  .card.sel{border-color:var(--suspect);background:#20191a}
+  .card.top{border-left:3px solid var(--suspect)}
+  .crow{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .nm{font-weight:600;font-size:13px}
+  .mm{color:var(--dim);font-size:11px;font-variant-numeric:tabular-nums}
+  .post{font-size:17px;font-variant-numeric:tabular-nums}
+  .bar{height:3px;background:#2d333b;border-radius:2px;margin:7px 0 0;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--suspect);border-radius:2px}
+  .why{margin:9px 0 0;padding-left:15px;font-size:11.5px;color:#c9d1d9}
+  .why li{margin-bottom:3px}
+  .terms{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:9px}
+  .term{background:#0d1117;border-radius:3px;padding:5px 4px;text-align:center}
+  .term b{display:block;font-size:12px;font-variant-numeric:tabular-nums}
+  .term span{font-size:8.5px;color:var(--dim);letter-spacing:.04em}
+  .chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+  .chip{font-size:9.5px;letter-spacing:.04em;padding:1px 5px;border-radius:3px;
+    background:#2d333b;color:var(--dim)}
+  .chip.bad{background:#3d1d1d;color:#ff9492}
+  .chip.warn{background:#3a2d12;color:#e3b341}
+
+  button{background:#21262d;color:var(--txt);border:1px solid var(--line);border-radius:5px;
+    padding:7px 12px;cursor:pointer;font:inherit;font-size:12px}
+  button:hover{background:#2d333b}
+  button:disabled{opacity:.4;cursor:default}
+  button.primary{background:#1f6feb;border-color:#1f6feb;color:#fff}
+  button.primary:hover{background:#2d7ff9}
+  button.danger{background:#5b1d1d;border-color:#8b2c2c;color:#ffb3ae}
+  button.danger:hover{background:#6e2424}
+  select{background:#21262d;color:var(--txt);border:1px solid var(--line);border-radius:5px;
+    padding:6px 9px;font:inherit;font-size:12px}
+  .row{display:flex;gap:8px;align-items:center}
+  .grow{flex:1}
+
+  /* ---------- alert ---------- */
+  .alert{border-radius:6px;border:1px solid var(--t2);background:#231d10;padding:11px 12px}
+  .alert.t1{border-color:var(--t1);background:#11231a}
+  .alert.t3{border-color:var(--t3);background:#2a1315}
+  .ahead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .sev{font-size:15px;font-weight:700;letter-spacing:.08em}
+  .tierpill{font-size:9.5px;letter-spacing:.07em;padding:2px 7px;border-radius:99px;
+    background:rgba(255,255,255,.08)}
+  .rcpt{display:grid;grid-template-columns:1fr auto;gap:2px 10px;margin-top:9px;font-size:11.5px}
+  .rcpt .rn{color:#c9d1d9}
+  .rcpt .rr{color:var(--dim);font-size:10px}
+  .rcpt .rd{text-align:right;font-variant-numeric:tabular-nums;color:var(--dim);font-size:11px}
+
+  /* ---------- modal ---------- */
+  #modal{position:fixed;inset:0;background:rgba(1,4,9,.78);z-index:2000;display:none;
+    align-items:center;justify-content:center;padding:28px;backdrop-filter:blur(2px)}
+  #modal.on{display:flex}
+  .sheet{background:var(--panel);border:1px solid var(--line);border-radius:9px;
+    max-width:860px;width:100%;max-height:100%;display:flex;flex-direction:column}
+  .sheet header{display:flex;justify-content:space-between;align-items:center}
+  .sheet pre{margin:0;padding:16px 20px;overflow:auto;font:12px/1.55 ui-monospace,
+    "Cascadia Mono",Consolas,monospace;color:#c9d1d9;white-space:pre-wrap}
+
+  /* ---------- floating map panels ---------- */
+  #stack{position:absolute;top:12px;left:52px;z-index:900;width:290px;
+    background:rgba(22,27,34,.94);border:1px solid var(--line);border-radius:7px;
+    backdrop-filter:blur(3px);overflow:hidden}
+  #stack .hd{padding:8px 11px;border-bottom:1px solid var(--line);font-size:10px;
+    letter-spacing:.13em;color:var(--dim);text-transform:uppercase;display:flex;
+    justify-content:space-between;align-items:center}
+  #stack .hd b{color:var(--txt);letter-spacing:.13em;font-size:10px}
+  #fold{padding:0;width:18px;height:18px;line-height:1;font-size:13px;color:var(--dim)}
+  #stackbody{max-height:calc(100vh - 300px);overflow-y:auto}
+  .sens{display:block;padding:7px 11px;border-bottom:1px solid #22272e;cursor:pointer}
+  .sens:last-child{border-bottom:0}
+  .sens:hover{background:#1c2128}
+  .sens .t{display:flex;align-items:center;gap:7px}
+  .sens input{accent-color:#58a6ff;margin:0;width:13px;height:13px}
+  .sens .dot{width:9px;height:9px;border-radius:2px;flex:none}
+  .sens .nmx{font-size:11.5px;font-weight:600}
+  .sens .role{font-size:10px;color:var(--dim);margin-left:33px;line-height:1.35}
+  .tag{font-size:8.5px;letter-spacing:.05em;padding:1px 4px;border-radius:3px;
+    background:#2d333b;color:var(--dim)}
+  .tag.prop{background:#3a2d12;color:#e3b341}
+  .tag.live{background:#11291b;color:#56d364}
+  #cbar{padding:8px 11px;border-top:1px solid var(--line)}
+  .ramp{height:8px;border-radius:2px;margin-bottom:3px}
+  .rlab{display:flex;justify-content:space-between;font-size:9px;color:var(--dim);
+    font-variant-numeric:tabular-nums}
+  .rttl{font-size:9px;letter-spacing:.09em;color:#6e7681;text-transform:uppercase;margin-bottom:3px}
+
+  #banner{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:901;
+    display:none;align-items:center;gap:10px;padding:7px 14px;border-radius:99px;
+    border:1px solid var(--t2);background:rgba(35,29,16,.95);font-size:12px;
+    backdrop-filter:blur(3px);white-space:nowrap}
+  #banner.on{display:flex}
+  #banner.t3{border-color:var(--t3);background:rgba(42,19,21,.95)}
+  #banner b{letter-spacing:.07em}
+  #banner button{padding:3px 9px;font-size:11px}
+
+  #maplegend{position:absolute;right:12px;bottom:158px;z-index:900;
+    background:rgba(22,27,34,.92);border:1px solid var(--line);border-radius:7px;
+    padding:9px 11px;font-size:10px;color:var(--dim);backdrop-filter:blur(3px);max-width:190px}
+  #maplegend div{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+  #maplegend i{width:12px;height:3px;border-radius:2px;flex:none}
+  #maplegend i.pt{width:8px;height:8px;border-radius:99px}
+
+  /* ---------- timeline ---------- */
+  #tl{position:absolute;left:52px;right:12px;bottom:12px;z-index:902;
+    background:rgba(22,27,34,.95);border:1px solid var(--line);border-radius:8px;
+    padding:10px 16px 12px;backdrop-filter:blur(4px)}
+  .tlhead{display:flex;align-items:center;gap:12px;margin-bottom:7px}
+  .tlhead .ttl{font-size:10px;letter-spacing:.13em;color:var(--dim);text-transform:uppercase}
+  .tlhead .now{font-size:15px;font-variant-numeric:tabular-nums;font-weight:600}
+  .tlhead .rel{font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
+  .phase{font-size:9.5px;letter-spacing:.07em;padding:2px 8px;border-radius:99px;
+    background:#2d333b;color:var(--dim)}
+  .phase.back{background:#3a2d12;color:#e3b341}
+  .phase.obs{background:#33201a;color:#ff9478}
+  .phase.fwd{background:#11291b;color:#56d364}
+
+  #track{position:relative;height:58px;margin:0 2px}
+  #axis{position:absolute;left:0;right:0;top:20px;height:4px;border-radius:2px;
+    background:linear-gradient(90deg,#3a2d12 0%,#3a2d12 var(--t0),#11291b var(--t0),#11291b 100%)}
+  #axis:after{content:"";position:absolute;inset:0;border-radius:2px;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+  .mark{position:absolute;top:8px;width:1px;height:28px;background:#484f58}
+  .mark.big{background:#e6edf3;width:2px;top:4px;height:36px}
+  .mark.rel{background:var(--suspect);width:2px;top:4px;height:36px}
+  .mark.fc{background:var(--fc)}
+  .mlab{position:absolute;top:-2px;transform:translateX(-50%);font-size:9px;color:var(--dim);
+    white-space:nowrap;letter-spacing:.04em}
+  .mlab.big{color:#e6edf3}
+  .mlab.rel{color:var(--suspect)}
+  #range{position:absolute;left:0;right:0;top:12px;width:100%;height:22px;margin:0;
+    -webkit-appearance:none;appearance:none;background:transparent;cursor:ew-resize}
+  #range::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:22px;border-radius:4px;
+    background:#e6edf3;border:1px solid #0d1117;box-shadow:0 0 0 1px rgba(0,0,0,.6),0 2px 6px rgba(0,0,0,.5)}
+  #range::-moz-range-thumb{width:15px;height:22px;border-radius:4px;background:#e6edf3;
+    border:1px solid #0d1117}
+  #range::-webkit-slider-runnable-track{height:22px;background:transparent}
+  .tlfoot{display:flex;align-items:center;gap:10px;margin-top:2px}
+  .tlfoot .sp{font-size:10px;color:#6e7681}
+  #play{width:34px;padding:5px 0;text-align:center}
+  .spd{display:flex;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+  .spd button{border:0;border-radius:0;padding:4px 8px;font-size:10.5px;background:#1c2128;
+    color:var(--dim)}
+  .spd button.on{background:#30363d;color:var(--txt)}
+  .spd button+button{border-left:1px solid var(--line)}
+  .flowleg{margin-left:auto;display:flex;gap:12px;font-size:10px;color:var(--dim);
+    align-items:center;font-variant-numeric:tabular-nums}
+  .flowleg i{display:inline-block;width:14px;height:2px;border-radius:2px;margin-right:5px;
+    vertical-align:middle}
+
+  #err{color:#ff7b72;font-size:12px;padding:10px 16px;white-space:pre-wrap}
+  #boot{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    background:var(--bg);z-index:1500;color:var(--dim);font-size:12px;letter-spacing:.1em;
+    padding:32px;text-align:center}
+  /* ---------- narrow windows ----------
+     A laptop at 1366 wide has ~900 px of map once the side panel is placed, and
+     the floating panels start eating it. Shrink rather than overlap. */
+  @media (max-width:1500px){
+    #side{width:400px;min-width:400px}
+    #stack{width:252px}
+    .sens .role{font-size:9.5px;margin-left:30px}
+    #maplegend{bottom:150px;font-size:9.5px;max-width:168px}
+  }
+  @media (max-width:1200px){
+    #side{width:344px;min-width:344px}
+    #stack{width:222px;top:8px;left:46px}
+    .sens{padding:5px 9px}
+    .sens .nmx{font-size:11px}
+    #maplegend{display:none}
+    #tl{left:46px;right:8px;bottom:24px;padding:8px 12px 10px}
+    .tlhead{flex-wrap:wrap;gap:8px}
+    .tlhead .now{font-size:13px}
+    .rcpt{font-size:11px}
+  }
+  @media (max-width:980px){
+    #banner{font-size:11px;padding:5px 10px;white-space:normal;max-width:60vw}
+    #stack{width:196px}
+    .sens .role{display:none}
+  }
+  .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#161b22;color:var(--txt)}
+  .leaflet-popup-content{margin:9px 12px;font-size:12px;line-height:1.5}
+  .leaflet-container a.leaflet-popup-close-button{color:var(--dim)}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="mapwrap">
+    <div id="map"></div>
+    <div id="boot">LOADING PIPELINE ARTIFACTS…</div>
+
+    <div id="banner">
+      <b id="bantxt">—</b>
+      <button id="banview">View alert</button>
+    </div>
+
+    <div id="stack">
+      <div class="hd"><b>LAYERS</b>
+        <span style="display:flex;gap:8px;align-items:center">
+          <span id="aoilab">ARABIAN SEA</span><button id="fold" title="collapse">−</button>
+        </span></div>
+      <div id="stackbody">
+        <label class="sens"><span class="t"><input type="checkbox" id="k_curr" checked>
+          <span class="dot" style="background:var(--s-curr)"></span>
+          <span class="nmx">Surface current</span><span class="tag live">pipeline</span></span>
+          <span class="role">Animated from the same env field the drift model integrates.</span></label>
+        <label class="sens"><span class="t"><input type="checkbox" id="k_wind" checked>
+          <span class="dot" style="background:var(--s-wind)"></span>
+          <span class="nmx">Wind field</span><span class="tag live">pipeline</span></span>
+          <span class="role">Production source: EOS-06 SCAT. Drives the 3–10 m/s detection gate.</span></label>
+        <label class="sens"><span class="t"><input type="checkbox" id="k_cg" checked>
+          <span class="dot" style="background:#ff9478"></span>
+          <span class="nmx">Coast Guard units</span><span class="tag live">layer 11</span></span>
+          <span class="role">Alert distribution list, ranged and bearing-marked from the slick.</span></label>
+        <label class="sens"><span class="t"><input type="checkbox" id="k_sar" checked>
+          <span class="dot" style="background:var(--s-sar)"></span>
+          <span class="nmx">EOS-04 SAR swath</span><span class="tag prop">proposed</span></span>
+          <span class="role">C-band MRS footprint, 115 km. Detection substrate.</span></label>
+        <!-- INSAT-3DS SST and EOS-06 chl-a stay OFF at load, and that is not an
+             oversight to be tidied up later. Both are MODELLED fields, not
+             MOSDAC products (CLAUDE.md 10.3). Every other layer here is drawn
+             from the pipeline's own output, so switching these on by default
+             would put invented data on the map at the same visual weight as
+             real data, with only a small "proposed" tag to distinguish them.
+             They are one click away for anyone who wants to see the concept. -->
+        <label class="sens"><span class="t"><input type="checkbox" id="k_insat">
+          <span class="dot" style="background:var(--s-insat)"></span>
+          <span class="nmx">INSAT-3DS SST</span><span class="tag prop">proposed</span></span>
+          <span class="role">Modelled field — not MOSDAC data. Shows the ingest concept.</span></label>
+        <label class="sens"><span class="t"><input type="checkbox" id="k_ocm">
+          <span class="dot" style="background:var(--s-ocm)"></span>
+          <span class="nmx">EOS-06 OCM-3 chl-a</span><span class="tag prop">proposed</span></span>
+          <span class="role">Modelled field — look-alike rejection once wired to real OCM-3.</span></label>
+        <label class="sens"><span class="t"><input type="checkbox" id="k_india" checked>
+          <span class="dot" style="background:#7d8590"></span>
+          <span class="nmx">India — national boundary</span>
+          <span class="tag live">Survey of India</span></span>
+          <span class="role">J&amp;K, Ladakh and Arunachal Pradesh inside the boundary.
+            Drawn over the basemap, which uses the international depiction.</span></label>
+        <div id="cbar" style="display:none">
+          <div class="rttl">INSAT-3DS SST</div><div class="ramp" id="ramp_sst"></div>
+          <div class="rlab"><span>16 °C</span><span>24</span><span>32 °C</span></div>
+          <div class="rttl" style="margin-top:8px">OCM-3 chl-a · log</div>
+          <div class="ramp" id="ramp_chl"></div>
+          <div class="rlab"><span>0.05</span><span>0.7</span><span>10 mg m⁻³</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="maplegend"></div>
+
+    <div id="tl">
+      <div class="tlhead">
+        <span class="ttl">Incident timeline</span>
+        <span class="now" id="tnow">—</span>
+        <span class="rel" id="trel">—</span>
+        <span class="phase" id="tphase">—</span>
+      </div>
+      <div id="track">
+        <div id="axis"></div>
+        <div id="marks"></div>
+        <input type="range" id="range" min="0" max="1000" value="1000" step="1"
+               aria-label="Incident time">
+      </div>
+      <div class="tlfoot">
+        <button id="play" title="Play / pause (space)">▶</button>
+        <div class="spd" id="spd">
+          <button data-s="0.5">0.5×</button><button data-s="1" class="on">1×</button>
+          <button data-s="3">3×</button>
+        </div>
+        <button id="tobs">Jump to acquisition</button>
+        <span class="sp" id="tsrc">—</span>
+        <span class="flowleg" id="flowleg"></span>
+      </div>
+    </div>
+  </div>
+
+  <div id="side">
+    <header>
+      <h1>SAMUDRA <span class="badge" id="mode">—</span></h1>
+      <div class="sub" id="hdr">—</div>
+      <div class="row" style="margin-top:10px">
+        <select id="pick" class="grow"></select>
+        <button id="audit" title="Verify the SHA-256 artifact hash chain">⛓ Audit</button>
+      </div>
+    </header>
+    <div id="err"></div>
+    <div id="scroll">
+      <section id="s_alert">
+        <h2>Alert · layer 11 <em>NOS-DCP tiering</em></h2>
+        <div id="alertbox"></div>
+        <div class="row" style="margin-top:9px">
+          <button id="amsg" class="grow">📡 Transmit-ready message</button>
+          <button id="ajson">⤓ JSON</button>
+          <button id="ageo">⤓ GeoJSON</button>
+        </div>
+        <div class="note" id="anote"></div>
+      </section>
+
+      <section>
+        <h2>Evidence</h2>
+        <div class="row">
+          <button id="dossier" class="primary grow">📄 Download attribution dossier (PDF)</button>
+        </div>
+        <div class="note" id="auditnote">Regenerating the dossier re-hashes every artifact, so
+          the chain hash printed inside always describes the files as they are now.</div>
+      </section>
+
+      <section>
+        <h2>Candidate funnel <em>layer 6b</em></h2>
+        <div class="funnel" id="funnel"></div>
+        <div class="note" id="funnelnote"></div>
+      </section>
+
+      <section>
+        <h2>Conditions &amp; slick</h2>
+        <dl class="kv" id="cond"></dl>
+      </section>
+
+      <section>
+        <h2>Drift <em>backtrack → forecast</em></h2>
+        <dl class="kv" id="drift"></dl>
+        <div class="note" id="driftnote"></div>
+      </section>
+
+      <section>
+        <h2>Ranked suspects <em>layer 7</em></h2>
+        <div id="cards"></div>
+        <div class="note">Ranked likelihoods, never a binary accusation. Click a card to
+          isolate the vessel and overlay its best simulated slick.</div>
+      </section>
+
+      <section>
+        <h2>Provenance</h2>
+        <dl class="kv" id="prov"></dl>
+        <div class="warn" id="provwarn"></div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div id="modal"><div class="sheet">
+  <header><b id="mtitle">—</b><button id="mclose">Close</button></header>
+  <pre id="mbody"></pre>
+</div></div>
+
+<!-- ?v= is a cache buster. Without it the browser keeps a stale
+     copy of these files across edits, and a change to the flow
+     layer silently does nothing while the HTML reloads fine —
+     which looks exactly like the change not working. Bump on edit. -->
+<script src="/static/isro_layers.js?v=3"></script>
+<script src="/static/flow_layer.js?v=3"></script>
+<script>
+const $=s=>document.querySelector(s);
+const fmt=(x,n=2)=>x==null||Number.isNaN(Number(x))?'—':Number(x).toFixed(n);
+const HR=3600;
+
+/* Opened by double-clicking the file rather than served by the API?
+   Then /static/isro_layers.js never loaded either, and the first reference to
+   ISRO below would throw with nothing on screen but "LOADING…". Say what is
+   wrong and stop here, before anything that depends on those scripts.
+   file:, data: and blob: all mean "not served by the API". */
+if(!/^https?:$/.test(location.protocol)){
+  $('#boot').innerHTML=
+    '<div style="max-width:560px;line-height:1.7;letter-spacing:0">'+
+    '<div style="font-size:15px;color:#e6edf3;margin-bottom:10px">'+
+    'This page needs the SAMUDRA API.</div>'+
+    'It is not a standalone file — the map, the timeline, the suspects and the '+
+    'alert are all read from <code>artifacts/</code> through the API.<br><br>'+
+    'Double-click <b>scripts\\start_dashboard.bat</b>, or run:<br>'+
+    '<code style="display:inline-block;margin:8px 0;padding:7px 11px;'+
+    'background:#161b22;border:1px solid #30363d;border-radius:5px;color:#e6edf3">'+
+    'python -m samudra.api --port 8000</code><br>'+
+    'then open <b>http://127.0.0.1:8000/app</b><br><br>'+
+    '<span style="font-size:11px;color:#6e7681">Use 127.0.0.1, not localhost — the '+
+    'server is IPv4-only and Windows may try IPv6 first.</span></div>';
+  throw new Error('SAMUDRA dashboard must be served by the API, not opened as a file.');
+}
+
+/* ===================== 1. map & basemaps ========================== */
+const map=L.map('map',{zoomControl:true,attributionControl:false,fadeAnimation:false,
+  minZoom:3,maxZoom:13}).setView([16.1,69.7],8);
+L.control.scale({imperial:false,position:'bottomleft'}).addTo(map);
+
+/* Basemap + the Indian depiction.
+ *
+ * Global basemaps (Esri, OSM, CARTO) draw Jammu & Kashmir per international
+ * convention, which is not the depiction an Indian submission should show. We
+ * cannot fix someone else's tiles, so the national boundary is drawn ON TOP of
+ * them from a bundled polygon that uses the Survey of India depiction: J&K,
+ * Ladakh (including Aksai Chin) and Arunachal Pradesh inside the boundary.
+ *
+ * It is filled, not just outlined. A fill covers whatever line the basemap drew
+ * underneath — an outline alone would leave the tiles' own boundary visible
+ * next to ours, which is worse than either on its own.
+ */
+const DARK=L.tileLayer(
+  'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+  {maxZoom:13}).addTo(map);
+
+const L_india=L.layerGroup().addTo(map);
+let INDIA=null;
+
+async function loadIndia(){
+  try{
+    INDIA=await jget('/static/india_boundary.json');
+  }catch(e){ console.warn('India boundary unavailable',e); return; }
+  drawIndia();
+  map.on('zoomend',drawIndia);
+}
+
+function drawIndia(){
+  if(!INDIA) return;
+  L_india.clearLayers();
+  // Zoomed right into the incident the landmass is off-frame or marginal, and a
+  // flat fill would bury coastal detail — drop to an outline there.
+  const fill = map.getZoom() <= 8 ? 0.95 : 0;
+  L.geoJSON(INDIA,{style:{color:'#7d8590',weight:1.1,opacity:.85,
+    fillColor:'#1c2128',fillOpacity:fill}})
+   .bindPopup('<b>India</b><br>'+INDIA.properties.depiction+
+              '<br><span style="color:#8b949e;font-size:11px">'+
+              INDIA.properties.source+'<br>'+INDIA.properties.note+'</span>')
+   .addTo(L_india);
+  L_india.eachLayer(l=>l.bringToBack());
+  DARK.bringToBack();
+}
+
+/* ===================== 2. layer groups ============================ */
+const L_env    = L.layerGroup().addTo(map);   // reverse-drift envelope steps
+const L_slick  = L.layerGroup().addTo(map);   // observed slick
+const L_fc     = L.layerGroup().addTo(map);   // forecast polygon + cone
+const L_tracks = L.layerGroup().addTo(map);   // AIS tracks
+const L_ships  = L.layerGroup().addTo(map);   // vessel positions at time T
+const L_part   = L.layerGroup().addTo(map);   // drift particles
+const L_sim    = L.layerGroup().addTo(map);   // selected suspect's simulated slick
+const L_cg     = L.layerGroup().addTo(map);   // coast guard units
+const L_sar    = L.layerGroup().addTo(map);   // EOS-04 swath
+
+let L_sst=null, L_chl=null, FLOW_C=null, FLOW_W=null;
+
+function note(m){ $('#err').textContent=m; }
+
+/* ===================== 3. state =================================== */
+let INC=null, TRACKS=null, REPLAY=null, ALERT=null, ENVF=null;
+let T0=0, TMIN=0, TMAX=0, T=0, SEL=null;
+let playing=false, speed=1, lastFrame=0;
+
+const jget=async u=>{
+  const r=await fetch(u);
+  if(!r.ok) throw new Error(`${u}\n→ ${r.status} ${(await r.text()).slice(0,240)}`);
+  return r.json();
+};
+
+/* ===================== 4. boot ==================================== */
+async function boot(){
+  try{
+    const list=(await jget('/api/incidents')).filter(i=>i.ready);
+    if(!list.length){
+      $('#boot').remove();
+      note('No analysed incidents. Run: python -m samudra.attribution --incident demo-001');
+      return;
+    }
+    $('#pick').innerHTML=list.map(i=>
+      `<option value="${i.incident_id}">${i.incident_id} · ${fmt(i.area_km2,1)} km² · `+
+      `${i.suspects} suspect${i.suspects===1?'':'s'}</option>`).join('');
+    $('#pick').onchange=()=>load($('#pick').value);
+    try{ ISRO.setLand(await jget('/static/land_io.json')); }catch(e){ /* mask optional */ }
+    await loadIndia();
+    await load(list[0].incident_id);
+    $('#boot').remove();
+  }catch(e){ const b=$('#boot'); if(b) b.remove(); note(e.message); }
+}
+
+async function load(id){
+  pause(); note(''); SEL=null;
+  [L_env,L_slick,L_fc,L_tracks,L_ships,L_part,L_sim,L_cg,L_sar].forEach(l=>l.clearLayers());
+
+  INC=await jget(`/api/incident/${id}`);
+  TRACKS=await jget(`/api/incident/${id}/tracks`);
+  // These three are non-fatal: the page still works without a replay, an env
+  // field or an alert, and says which one is missing rather than dying.
+  REPLAY=await jget(`/api/incident/${id}/replay`).catch(e=>{console.warn(e);return null;});
+  ENVF  =await jget(`/api/incident/${id}/env`).catch(e=>{console.warn(e);return null;});
+  ALERT =await jget(`/api/incident/${id}/alert`).catch(e=>{console.warn(e);return null;});
+
+  T0=Date.parse(INC.acquisition_at)/1000;
+  const backH=Math.max(1,...(INC.envelope_steps||[{hours_back:6}]).map(s=>s.hours_back));
+  const relT=REPLAY?Date.parse(REPLAY.release_at)/1000:T0-backH*HR;
+  TMIN=Math.min(T0-backH*HR, relT)-HR*0.5;
+  TMAX=T0+72*HR;
+
+  drawStatic(); buildTimeline(); renderPanel(); renderAlert(); setupFlow();
+  setTime(T0);
+  fitWhenSized(()=>{
+    const b=L.geoJSON(INC.origin_envelope).getBounds();
+    b.extend(L.geoJSON(INC.observed_slick.geometry).getBounds());
+    // The layer panel and the timeline float over the map, so a symmetric fit
+    // centres the incident underneath them. Push it into the clear area.
+    map.fitBounds(b,{maxZoom:10,
+      paddingTopLeft:[$('#stack').offsetWidth+70,80],
+      paddingBottomRight:[40,$('#tl').offsetHeight+40]});
+  });
+}
+
+/* ===================== 5. static map content ====================== */
+function drawStatic(){
+  // EOS-04 swath around the scene — proposed ingest, drawn so the footprint the
+  // detection would have come from is explicit rather than implied.
+  const c=INC.observed_slick;
+  L.geoJSON(ISRO.swathPolygon(c.centroid_lat,c.centroid_lon,193,900,115),
+    {style:{color:'#db6d28',weight:1.4,opacity:.8,dashArray:'7,6',
+            fillColor:'#db6d28',fillOpacity:.05}})
+   .bindPopup('<b>EOS-04 · C-band SAR</b><br>MRS 25 m · 115 km swath · descending'+
+              '<br><i>Proposed ingest — footprint shown for scale.</i>')
+   .addTo(L_sar);
+
+  // AIS tracks, coloured by where the funnel put them.
+  const STYLE={suspect:{color:'#ff3b30',weight:2,opacity:.95},
+               envelope:{color:'#58a6ff',weight:1.3,opacity:.75},
+               filtered:{color:'#3d4450',weight:.8,opacity:.45},
+               outside:{color:'#30363d',weight:.7,opacity:.30}};
+  TRACKS.features.forEach(f=>{
+    const p=f.properties;
+    const ly=L.geoJSON(f,{style:STYLE[p.role]||STYLE.outside}).addTo(L_tracks);
+    ly.bindPopup(`<b>${p.vessel_name||'unknown'}</b><br>MMSI ${p.mmsi}<br>`+
+      `${p.vessel_type||''}<br>funnel role: ${p.role}`+
+      (p.posterior!=null?`<br>posterior ${fmt(p.posterior,3)}`:''));
+    ly._mmsi=p.mmsi; ly._style=STYLE[p.role]||STYLE.outside;
+  });
+
+  // Coast Guard units, with the addressed ones ringed and joined to the slick.
+  if(ALERT&&ALERT.stations){
+    const addressed=[];
+    ALERT.stations.features.forEach(f=>{
+      const p=f.properties, ll=[f.geometry.coordinates[1],f.geometry.coordinates[0]];
+      const big=p.role==='REGION_HQ'||p.role==='NATIONAL_HQ';
+      if(p.addressed) addressed.push({ll,p});
+      L.circleMarker(ll,{radius:p.addressed?(big?7:5.5):3,
+        color:p.addressed?'#ff9478':'#57606a',weight:p.addressed?2:1,
+        fillColor:p.addressed?'#ff9478':'#21262d',fillOpacity:p.addressed?.85:.5})
+       .bindPopup(`<b>${p.name}</b><br>${p.role.replace('_',' ')} · ${p.region}`+
+         (p.addressed?`<br><span style="color:#ff9478">ON THIS ALERT</span><br>`+
+            `${fmt(p.distance_km,0)} km · bearing ${fmt(p.bearing_deg,0)}° to slick<br>`+
+            `<i>${p.action}</i>`:''))
+       .addTo(L_cg);
+    });
+    addressed.forEach(a=>{
+      L.polyline([a.ll,[c.centroid_lat,c.centroid_lon]],
+        {color:'#ff9478',weight:.9,opacity:.35,dashArray:'3,6'}).addTo(L_cg);
+    });
+  }
+}
+
+/* ===================== 6. the timeline ============================ */
+function buildTimeline(){
+  const span=TMAX-TMIN, pc=t=>((t-TMIN)/span*100);
+  $('#axis').style.setProperty('--t0',pc(T0).toFixed(2)+'%');
+
+  const marks=[];
+  (INC.envelope_steps||[]).forEach(s=>{
+    marks.push({t:T0-s.hours_back*HR,cls:'',lab:null});   // one tick per hindcast step
+  });
+  // The release label sits BELOW the axis: it lands within a few hours of
+  // acquisition, and two labels on the same line collide at every zoom.
+  if(REPLAY) marks.push({t:Date.parse(REPLAY.release_at)/1000,cls:'rel',below:true,
+    lab:'release · '+(REPLAY.vessel_name||REPLAY.mmsi)});
+  marks.push({t:T0,cls:'big',lab:'SAR acquisition'});
+  [24,48,72].forEach(h=>{
+    if((INC.forecasts||{})['forecast_'+h+'h']) marks.push({t:T0+h*HR,cls:'fc',lab:'+'+h+' h'});
+  });
+
+  $('#marks').innerHTML=marks.map(m=>{
+    const p=pc(m.t), x=p.toFixed(3)+'%';
+    let out=`<span class="mark ${m.cls}" style="left:${x}"></span>`;
+    if(m.lab){
+      // Keep end labels inside the track instead of clipping them off.
+      const tf = p>92 ? 'translateX(-100%)' : (p<7 ? 'translateX(0)' : 'translateX(-50%)');
+      out+=`<span class="mlab ${m.cls}" style="left:${x};transform:${tf};`+
+           `top:${m.below?'34px':'-2px'}">${m.lab}</span>`;
+    }
+    return out;
+  }).join('');
+
+  const r=$('#range');
+  r.oninput=()=>{ pause(); setTime(TMIN+(+r.value/1000)*span); };
+  $('#tobs').onclick=()=>{ pause(); setTime(T0); };
+  $('#play').onclick=()=>playing?pause():play();
+  document.querySelectorAll('#spd button').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('#spd button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); speed=+b.dataset.s;
+  });
+  window.addEventListener('keydown',e=>{
+    if(e.target.tagName==='INPUT'&&e.target.type!=='range') return;
+    if(e.code==='Space'){ e.preventDefault(); playing?pause():play(); }
+    if(e.code==='ArrowLeft'){ pause(); setTime(T-(e.shiftKey?6:1)*HR); }
+    if(e.code==='ArrowRight'){ pause(); setTime(T+(e.shiftKey?6:1)*HR); }
+  });
+}
+
+function play(){
+  if(T>=TMAX-1) T=TMIN;
+  playing=true; $('#play').textContent='❚❚'; lastFrame=performance.now();
+  requestAnimationFrame(tick);
+}
+function pause(){ playing=false; $('#play').textContent='▶'; }
+function tick(now){
+  if(!playing) return;
+  const dt=(now-lastFrame)/1000; lastFrame=now;
+  // Whole span in ~26 s at 1x — slow enough to read the backtrack, fast enough
+  // that nobody waits through the forecast.
+  setTime(T+dt*((TMAX-TMIN)/26)*speed);
+  if(T>=TMAX){ setTime(TMAX); pause(); return; }
+  requestAnimationFrame(tick);
+}
+
+function setTime(t){
+  T=Math.max(TMIN,Math.min(TMAX,t));
+  $('#range').value=Math.round((T-TMIN)/(TMAX-TMIN)*1000);
+  const h=(T-T0)/HR;
+  $('#tnow').textContent=new Date(T*1000).toISOString().replace('T',' ').slice(0,16)+'Z';
+  $('#trel').textContent=(h>=0?'T+':'T−')+fmt(Math.abs(h),1)+' h';
+
+  const ph=$('#tphase');
+  if(h<-0.25){ ph.textContent='HINDCAST'; ph.className='phase back'; }
+  else if(h<=0.25){ ph.textContent='OBSERVED'; ph.className='phase obs'; }
+  else { ph.textContent='FORECAST'; ph.className='phase fwd'; }
+
+  drawEnvelopeAt(h);
+  drawSlickAt(h);
+  drawForecastAt(h);
+  drawParticlesAt(T);
+  drawShipsAt(T);
+  if(FLOW_C) FLOW_C.setTime(T);
+  if(FLOW_W) FLOW_W.setTime(T);
+  updateFlowLegend();
+}
+
+/* --- reverse-drift envelope: the backtracking, step by step --- */
+function drawEnvelopeAt(h){
+  L_env.clearLayers();
+  const steps=INC.envelope_steps||[];
+  if(h>0.25){
+    // Past acquisition the envelope is history; keep the union faintly so the
+    // search area that produced the ranking stays on screen.
+    L.geoJSON(INC.origin_envelope,{style:{color:'#ffd166',weight:1,opacity:.30,
+      fill:false,dashArray:'4,5'}}).addTo(L_env);
+    return;
+  }
+  L.geoJSON(INC.origin_envelope,{style:{color:'#ffd166',weight:1.4,opacity:.65,
+    fillColor:'#ffd166',fillOpacity:.05,dashArray:'5,4'}})
+   .bindPopup('Origin envelope — union of every reverse-drift step')
+   .addTo(L_env);
+  if(!steps.length) return;
+
+  const want=Math.max(0,-h);
+  let best=steps[0];
+  for(const s of steps) if(Math.abs(s.hours_back-want)<Math.abs(best.hours_back-want)) best=s;
+  L.geoJSON(best.geometry,{style:{color:'#ffd166',weight:2.2,opacity:.95,
+    fillColor:'#ffd166',fillOpacity:.14}})
+   .bindPopup(`Reverse drift — where the oil could have been<br>`+
+     `${fmt(best.hours_back,1)} h before acquisition (${best.time.replace('T',' ').slice(0,16)}Z)`)
+   .addTo(L_env);
+}
+
+function drawSlickAt(h){
+  L_slick.clearLayers();
+  const solid=Math.abs(h)<=0.25;
+  L.geoJSON(INC.observed_slick.geometry,{style:{color:'#0d1117',weight:5,
+    opacity:solid?.6:.25,fill:false}}).addTo(L_slick);
+  L.geoJSON(INC.observed_slick.geometry,{style:{color:'#ff6b4a',
+    weight:solid?2.2:1.2, opacity:solid?1:.45,
+    fillColor:'#ff6b4a',fillOpacity:solid?.45:.10}})
+   .bindPopup(`<b>Observed slick</b> — ${fmt(INC.observed_slick.area_km2,1)} km²<br>`+
+     `long axis ${fmt(INC.observed_slick.major_axis_deg,0)}° · `+
+     `eccentricity ${fmt(INC.observed_slick.eccentricity,3)}`)
+   .addTo(L_slick);
+}
+
+/* --- forecast: snap to a computed horizon, never interpolate ---
+   24/48/72 h are what impact/forecast.py actually integrated. Drawing a
+   smoothly morphing polygon between them would be a second, silently different
+   drift model living in the browser. */
+function drawForecastAt(h){
+  L_fc.clearLayers();
+  $('#tsrc').textContent='';
+  if(h<=0.25) return;
+  const have=[24,48,72].filter(x=>(INC.forecasts||{})['forecast_'+x+'h']);
+  if(!have.length){ $('#tsrc').textContent='no forecast artifacts'; return; }
+  const chosen=have.filter(x=>x<=h+0.01).pop();
+  if(chosen==null){
+    $('#tsrc').textContent=`next computed horizon +${have[0]} h`;
+    return;
+  }
+  const fc=INC.forecasts['forecast_'+chosen+'h'];
+  const cone=fc.features.find(f=>f.properties.kind==='uncertainty_cone');
+  const poly=fc.features.find(f=>f.properties.kind==='forecast');
+  if(cone) L.geoJSON(cone,{style:{color:'#3fb950',weight:1,opacity:.5,dashArray:'3,4',
+    fillColor:'#3fb950',fillOpacity:.07}})
+    .bindPopup(`Uncertainty cone at +${chosen} h — ${fmt(cone.properties.area_km2,0)} km²`)
+    .addTo(L_fc);
+  if(poly){
+    const p=poly.properties;
+    L.geoJSON(poly,{style:{color:'#7ee787',weight:2,fillColor:'#7ee787',fillOpacity:.28}})
+     .bindPopup(`<b>Forecast +${chosen} h</b><br>${fmt(p.area_km2,1)} km² `+
+       `(${fmt(p.area_km2/INC.observed_slick.area_km2,1)}× observed)<br>`+
+       (p.coastline_intersects
+          ? `<span style="color:#ff7b72">Shore contact — ${fmt(p.affected_shoreline_km,1)} km`+
+            `, ETA ${(p.coastline_eta||'').replace('T',' ').slice(0,16)}Z</span>`
+          : `No shore contact · closest ${fmt(p.distance_to_coast_km,0)} km`))
+     .addTo(L_fc);
+  }
+  $('#tsrc').textContent=`showing computed +${chosen} h`+
+    (chosen<Math.floor(h)?` (next: +${have.find(x=>x>chosen)||'—'} h)`:'');
+}
+
+/* --- particles: the pipeline's own forward replay of the winning hypothesis --- */
+function drawParticlesAt(t){
+  L_part.clearLayers();
+  if(!REPLAY||!REPLAY.frames||!REPLAY.frames.length) return;
+  const rel=Date.parse(REPLAY.release_at)/1000;
+  if(t<rel-60||t>T0+60) return;
+  const want=(t-rel)/HR;
+  let f=REPLAY.frames[0];
+  for(const fr of REPLAY.frames)
+    if(Math.abs(fr.hours_after_release-want)<Math.abs(f.hours_after_release-want)) f=fr;
+  for(let k=0;k<f.lat.length;k++)
+    L.circleMarker([f.lat[k],f.lon[k]],{radius:1.7,weight:0,
+      fillColor:'#ff6b4a',fillOpacity:.6}).addTo(L_part);
+}
+
+/* --- vessels at time T, interpolated on the AIS timestamps --- */
+function drawShipsAt(t){
+  L_ships.clearLayers();
+  TRACKS.features.forEach(f=>{
+    const p=f.properties, ts=p.t;
+    if(!ts||ts.length<2||t<ts[0]||t>ts[ts.length-1]) return;
+    let i=1; while(i<ts.length-1&&ts[i]<t) i++;
+    const a=f.geometry.coordinates[i-1], b=f.geometry.coordinates[i];
+    const u=(t-ts[i-1])/Math.max(1e-6,ts[i]-ts[i-1]);
+    const lon=a[0]+(b[0]-a[0])*u, lat=a[1]+(b[1]-a[1])*u;
+    const isSus=p.role==='suspect', isSel=SEL===p.mmsi;
+    L.circleMarker([lat,lon],{
+      radius:isSel?6:(isSus?4.5:2.6),
+      color:isSel?'#ffffff':(isSus?'#ff3b30':'#8b949e'),
+      weight:isSel?2:(isSus?1.6:1),
+      fillColor:isSel?'#ff3b30':(isSus?'#ff3b30':'#30363d'),
+      fillOpacity:isSus?.9:.5})
+     .bindPopup(`<b>${p.vessel_name||'unknown'}</b><br>MMSI ${p.mmsi}<br>`+
+       `position at ${new Date(t*1000).toISOString().replace('T',' ').slice(0,16)}Z`)
+     .addTo(L_ships);
+  });
+}
+
+/* ===================== 7. wind & current ========================== */
+function setupFlow(){
+  if(FLOW_C){ map.removeLayer(FLOW_C); FLOW_C=null; }
+  if(FLOW_W){ map.removeLayer(FLOW_W); FLOW_W=null; }
+  if(!ENVF){ $('#flowleg').textContent='no env field'; return; }
+  /* Deliberately understated. The earlier settings (1200 + 950 particles at
+     2600x display speed with long persistent trails) read as a screensaver:
+     the motion dominated the map and competed with the slick, the tracks and
+     the forecast, which are the things a reader is meant to look at.
+     Roughly a fifth of the particles, a third of the speed and shorter trails
+     keep the field legible as direction and relative strength without pulling
+     the eye. It is still the pipeline's own env.npz being advected — only the
+     presentation changed, not the data. */
+  /* Three knobs, and they do not do the same thing — cutting all of them at
+     once turned the field into a clump of dots:
+       count       how busy it is          -> cut hard (1200/950 -> 200/150)
+       speedScale  how fast the eye is pulled -> cut hard (2600/120 -> 700/36)
+       fade        how LONG each streak is -> keep HIGH, or particles render as
+                   dots instead of flow lines and legibility gets worse
+     The result is a sparse field of slow, thin streaks: direction and relative
+     strength stay readable, and nothing competes with the slick or the tracks.
+     Still the pipeline's own env.npz — only the presentation changed. */
+  /* Static arrows, no drifting particles.
+     The animated streaks were dropped after several rounds of toning them
+     down: dimming and thinning them made them less annoying but no more
+     informative, and anything still moving on the map competes with the slick
+     and the vessel tracks for attention. An arrow grid answers the only
+     question this layer exists to answer — which way, and roughly how hard —
+     immediately and without motion. Arrow length still scales with speed.
+     Same env.npz the drift model integrates; only the rendering changed. */
+  FLOW_C=FlowLayer({kind:'curr',colour:'#5ee9f2',animate:false,
+    glyphs:true,glyphWidth:1.5,glyphLen:8,
+    glyphColour:'rgba(94,233,242,.78)'}).setField(ENVF);
+  FLOW_W=FlowLayer({kind:'wind',colour:'#c297ff',animate:false,
+    glyphs:true,glyphWidth:1.5,glyphLen:8,
+    glyphColour:'rgba(194,151,255,.72)'}).setField(ENVF);
+  if($('#k_curr').checked) FLOW_C.addTo(map);
+  if($('#k_wind').checked) FLOW_W.addTo(map);
+}
+function updateFlowLegend(){
+  const bits=[];
+  if(FLOW_C&&map.hasLayer(FLOW_C))
+    bits.push(`<span><i style="background:#39c5cf"></i>current · peak ${fmt(FLOW_C.maxSpeed(),2)} m/s</span>`);
+  if(FLOW_W&&map.hasLayer(FLOW_W))
+    bits.push(`<span><i style="background:#a371f7"></i>wind · peak ${fmt(FLOW_W.maxSpeed(),1)} m/s</span>`);
+  $('#flowleg').innerHTML=bits.join('');
+}
+
+/* ===================== 8. side panel ============================== */
+function renderPanel(){
+  $('#mode').textContent=INC.synthetic?'SYNTHETIC SCENARIO':'REAL';
+  $('#mode').style.color=INC.synthetic?'#d29922':'var(--ok)';
+  $('#hdr').textContent=
+    `${INC.incident_id} · SAR acquisition ${INC.acquisition_at.replace('T',' ').slice(0,16)} UTC`;
+
+  const f=INC.funnel;
+  $('#funnel').innerHTML=[['in scene',f.total_in_scene],['in envelope',f.in_envelope],
+    ['scored',f.scored],['ranked',f.ranked]]
+    .map((s,i,a)=>`<div class="fstep ${i===a.length-1?'last':''}"><b>${s[1]}</b>`+
+      `<span>${s[0]}</span></div>`).join('');
+  $('#funnelnote').textContent=
+    `${f.total_in_scene-f.in_envelope} of ${f.total_in_scene} vessels never entered the `+
+    `reverse-drift envelope and were dropped before any scoring ran.`;
+
+  const e=INC.env_summary,s=INC.observed_slick,a=INC.slick_age||{};
+  $('#cond').innerHTML=[
+    ['Wind',`${fmt(e.mean_wind_speed_ms,1)} m/s from ${fmt(e.mean_wind_dir_deg,0)}°`],
+    ['Wind gate',e.wind_gate_pass?'PASS (3–10 m/s)':'FAIL'],
+    ['Surface current',`${fmt(e.mean_current_speed_ms,2)} m/s → ${fmt(e.mean_current_dir_deg,0)}°`],
+    ['Slick area',`${fmt(s.area_km2,1)} km²`],
+    ['Perimeter',`${fmt(s.perimeter_km,1)} km`],
+    ['Long axis',`${fmt(s.major_axis_deg,0)}°`],
+    ['Eccentricity',fmt(s.eccentricity,3)],
+    ['Shape complexity',fmt(s.shape_complexity,2)],
+    ['Centre',`${fmt(s.centroid_lat,3)}°N ${fmt(s.centroid_lon,3)}°E`],
+  ].map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('');
+
+  const fcRows=[24,48,72].map(h=>{
+    const fc=(INC.forecasts||{})['forecast_'+h+'h'];
+    if(!fc) return null;
+    const p=(fc.features.find(x=>x.properties.kind==='forecast')||{}).properties||{};
+    return [`+${h} h`,`${fmt(p.area_km2,0)} km² · shore ${fmt(p.distance_to_coast_km,0)} km`];
+  }).filter(Boolean);
+  $('#drift').innerHTML=[
+    ['Estimated age',`${fmt(a.best_hours,1)} h (${fmt(a.low_hours,1)}–${fmt(a.high_hours,1)})`],
+    ['Fay cross-check',`${fmt(a.fay_estimate_hours,1)} h — ${a.agrees_with_fay?'agrees':'DISAGREES'}`
+      +(a.fay_ratio?` (${fmt(a.fay_ratio,2)}×)`:'')],
+    ['Backtrack steps',`${(INC.envelope_steps||[]).length} × 1 h`],
+    ...fcRows,
+  ].map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('');
+  $('#driftnote').textContent=
+    'Hindcast and forecast use the same particle advection. The Fay cross-check '+
+    'assumes a reference discharge volume, so it is a consistency check, not an '+
+    'independent measurement.';
+
+  $('#cards').innerHTML=INC.suspects.map(su=>{
+    const b=su.best_hypothesis;
+    const flags=[...(su.trust_flags||[]).map(x=>`<span class="chip bad">${x}</span>`),
+                 ...(su.behaviour_flags||[]).map(x=>`<span class="chip warn">${x}</span>`)];
+    if(su.gap_coincidence) flags.push('<span class="chip bad">GAP_COINCIDENCE</span>');
+    flags.push(`<span class="chip">${su.classification||'—'}</span>`);
+    return `<div class="card ${su.rank===1?'top':''}" data-mmsi="${su.mmsi}">
+      <div class="crow">
+        <span><span class="nm">${su.vessel_name||'unknown'}</span>
+          <span class="mm">#${su.rank} · ${su.mmsi} · ${su.flag||'—'}</span></span>
+        <span class="post">${fmt(su.posterior,3)}</span></div>
+      <div class="mm">${su.vessel_type||'type unknown'}${su.length_m?` · ${fmt(su.length_m,0)} m`:''}</div>
+      <div class="bar"><i style="width:${(su.posterior*100).toFixed(1)}%"></i></div>
+      <div class="terms">
+        <div class="term"><b>${fmt(b.iou,3)}</b><span>IoU ×.40</span></div>
+        <div class="term"><b>${fmt(b.centroid_offset_km,1)}km</b><span>CENTRE ×.25</span></div>
+        <div class="term"><b>${fmt(b.orientation_delta_deg,0)}°</b><span>ORIENT ×.25</span></div>
+        <div class="term"><b>${fmt(b.area_ratio,2)}</b><span>AREA ×.10</span></div>
+      </div>
+      <div class="chips">${flags.join('')}</div>
+      <ul class="why">${(su.rationale||[]).map(r=>`<li>${r}</li>`).join('')}</ul>
+    </div>`;
+  }).join('');
+  document.querySelectorAll('.card').forEach(c=>c.onclick=()=>select(+c.dataset.mmsi));
+
+  const src=INC.slick_source||{};
+  $('#prov').innerHTML=[
+    ['Scenario',INC.synthetic?'synthetic, planted ground truth':'real'],
+    ['Slick source',src.source||'—'],
+    ['AIS',TRACKS.features.length>200?'real traffic density':'synthetic tracks'],
+    ['Env field','env.npz — synthetic for this AOI'],
+    ['Alert transport','compose only — nothing transmitted'],
+  ].map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('');
+  $('#provwarn').textContent=src.reason||'';
+}
+
+function select(mmsi){
+  SEL=mmsi;
+  document.querySelectorAll('.card').forEach(c=>
+    c.classList.toggle('sel',+c.dataset.mmsi===mmsi));
+  L_tracks.eachLayer(l=>{
+    const on=l._mmsi===mmsi;
+    l.setStyle(on?{color:'#ffffff',weight:3,opacity:1}:l._style);
+    if(on) l.bringToFront();
+  });
+  L_sim.clearLayers();
+  const su=INC.suspects.find(x=>x.mmsi===mmsi);
+  if(su&&su.best_hypothesis.simulated_geometry){
+    L.geoJSON(su.best_hypothesis.simulated_geometry,{style:{color:'#ffffff',weight:1.5,
+      dashArray:'4,3',fillColor:'#ffffff',fillOpacity:.10}})
+     .bindPopup(`Simulated slick — release ${su.best_hypothesis.release_at
+       .replace('T',' ').slice(0,16)}Z<br>IoU ${fmt(su.best_hypothesis.iou,3)}`)
+     .addTo(L_sim);
+  }
+  drawShipsAt(T);
+}
+
+/* ===================== 9. alert =================================== */
+function renderAlert(){
+  const box=$('#alertbox'), ban=$('#banner');
+  if(!ALERT){
+    box.innerHTML='<div class="note">Alert unavailable — run '+
+      '<code>python -m samudra.dissemination --incident '+INC.incident_id+'</code></div>';
+    ban.className=''; return;
+  }
+  const t=ALERT.nosdcp_tier;
+  box.innerHTML=`<div class="alert t${t}">
+    <div class="ahead"><span class="sev">${ALERT.severity}</span>
+      <span class="tierpill">${ALERT.tier_label}</span></div>
+    <div class="note" style="margin-top:5px;color:#c9d1d9">${ALERT.tier_reasons.join(' · ')}</div>
+    <div class="note" style="margin-top:5px">${ALERT.position.dms} ·
+      ${ALERT.shore.contact_forecast
+        ? `<b style="color:#ff9492">shore contact in ${fmt(ALERT.shore.eta_hours,0)} h</b>`
+        : `no shore contact in 72 h (closest ${fmt(ALERT.shore.closest_approach_km,0)} km)`}</div>
+    <div class="rcpt">${ALERT.recipients.map(r=>
+      `<span><span class="rn">${r.name}</span><br><span class="rr">${r.action}</span></span>
+       <span class="rd">${fmt(r.distance_km,0)} km<br>${fmt(r.bearing_deg,0)}°</span>`).join('')}
+    </div></div>`;
+  $('#anote').textContent=ALERT.transmission_note;
+  ban.className='on'+(t===3?' t3':'');
+  $('#bantxt').textContent=`${ALERT.severity} · ${ALERT.tier_label} · `+
+    `${ALERT.recipients.length} Coast Guard unit${ALERT.recipients.length===1?'':'s'} addressed`;
+}
+
+function showMessage(){
+  if(!ALERT) return;
+  $('#mtitle').textContent=ALERT.alert_id+'  —  not transmitted';
+  $('#mbody').textContent=ALERT.message;
+  $('#modal').classList.add('on');
+}
+$('#mclose').onclick=()=>$('#modal').classList.remove('on');
+$('#modal').onclick=e=>{ if(e.target.id==='modal') $('#modal').classList.remove('on'); };
+$('#amsg').onclick=showMessage;
+$('#banview').onclick=showMessage;
+
+function download(name,text,mime){
+  const b=new Blob([text],{type:mime}), u=URL.createObjectURL(b);
+  const a=document.createElement('a'); a.href=u; a.download=name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(u),20000);
+}
+$('#ajson').onclick=()=>{ if(!ALERT) return;
+  const {stations,...core}=ALERT;
+  download(`alert_${INC.incident_id}.json`,JSON.stringify(core,null,2),'application/json'); };
+$('#ageo').onclick=()=>{ if(!ALERT) return;
+  download(`coastguard_${INC.incident_id}.geojson`,
+    JSON.stringify(ALERT.stations,null,2),'application/geo+json'); };
+
+/* ===================== 10. evidence =============================== */
+$('#dossier').onclick=async()=>{
+  const b=$('#dossier'), was=b.textContent;
+  b.disabled=true; b.textContent='Generating — re-hashing artifacts…';
+  try{
+    const r=await fetch(`/api/incident/${INC.incident_id}/dossier`);
+    if(!r.ok) throw new Error(`dossier → ${r.status} ${(await r.text()).slice(0,200)}`);
+    const blob=await r.blob(), u=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=u;
+    a.download=`dossier_${INC.incident_id}.pdf`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(u),30000);
+    b.textContent='✓ Downloaded'; setTimeout(()=>{b.textContent=was;},2500);
+  }catch(e){ note(e.message); b.textContent=was; }
+  finally{ b.disabled=false; }
+};
+$('#audit').onclick=async()=>{
+  try{
+    const a=await jget('/api/audit');
+    $('#mtitle').textContent='Artifact hash chain';
+    $('#mbody').textContent=JSON.stringify(a,null,2);
+    $('#modal').classList.add('on');
+  }catch(e){ note(e.message); }
+};
+
+/* ===================== 11. layer toggles ========================== */
+function bindToggle(id,on,off){
+  const el=document.getElementById(id);
+  el.onchange=()=>{ el.checked?on():off(); updateFlowLegend(); };
+}
+bindToggle('k_curr',()=>FLOW_C&&FLOW_C.addTo(map),()=>FLOW_C&&map.removeLayer(FLOW_C));
+bindToggle('k_wind',()=>FLOW_W&&FLOW_W.addTo(map),()=>FLOW_W&&map.removeLayer(FLOW_W));
+bindToggle('k_cg',()=>L_cg.addTo(map),()=>map.removeLayer(L_cg));
+bindToggle('k_sar',()=>L_sar.addTo(map),()=>map.removeLayer(L_sar));
+bindToggle('k_india',()=>{L_india.addTo(map);drawIndia();},()=>map.removeLayer(L_india));
+
+function isroToggle(id,make,ref){
+  const el=document.getElementById(id);
+  el.onchange=()=>{
+    if(el.checked){ if(!window[ref]) window[ref]=make(); window[ref].addTo(map); }
+    else if(window[ref]) map.removeLayer(window[ref]);
+    $('#cbar').style.display=
+      ($('#k_insat').checked||$('#k_ocm').checked)?'block':'none';
+  };
+}
+isroToggle('k_insat',()=>ISRO.sstLayer(map,{opacity:.55,zIndex:210}),'_sst');
+isroToggle('k_ocm', ()=>ISRO.chlLayer(map,{opacity:.55,zIndex:220}),'_chl');
+$('#ramp_sst').style.background=ISRO.cssRamp(ISRO.SST_RAMP,24);
+$('#ramp_chl').style.background=ISRO.cssRamp(ISRO.CHL_RAMP,24);
+
+function foldStack(collapse){
+  $('#stackbody').style.display=collapse?'none':'';
+  $('#fold').textContent=collapse?'+':'−';
+}
+$('#fold').onclick=e=>{
+  e.preventDefault();
+  foldStack($('#stackbody').style.display!=='none');
+};
+// On a narrow screen the layer list covers the incident. Start it collapsed and
+// let the presenter open it, rather than opening on top of the evidence.
+if(window.innerWidth<1250) foldStack(true);
+
+$('#maplegend').innerHTML=[
+  ['var(--slick)','observed slick',''],
+  ['var(--env)','reverse-drift envelope',''],
+  ['var(--fc)','forecast + cone',''],
+  ['var(--suspect)','ranked suspect',''],
+  ['var(--cand)','in envelope',''],
+  ['var(--filt)','filtered out',''],
+  ['#ff9478','Coast Guard — addressed','pt'],
+  ['#57606a','Coast Guard — other','pt'],
+  ['#7d8590','India — Survey of India depiction',''],
+].map(r=>`<div><i class="${r[2]}" style="background:${r[0]}"></i>${r[1]}</div>`).join('');
+
+/* ===================== 12. sizing ================================= */
+function fitWhenSized(fn,tries){
+  tries=tries||0; const el=map.getContainer();
+  if((el.clientWidth<50||el.clientHeight<50)&&tries<40)
+    return setTimeout(()=>fitWhenSized(fn,tries+1),60);
+  map.invalidateSize(); fn();
+}
+window.addEventListener('resize',()=>map.invalidateSize());
+map.on('zoomend',()=>{
+  const z=map.getZoom();
+  if(window._sst) window._sst.setOpacity(z<=7?.62:.26);
+  if(window._chl) window._chl.setOpacity(z<=7?.58:.16);
+});
+
+boot();
+</script>
+</body>
+</html>

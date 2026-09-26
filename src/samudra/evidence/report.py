@@ -566,8 +566,80 @@ def build(incident_id: str, root: Path = Path("artifacts")) -> Path:
     else:
         A(Paragraph("Forecast not computed for this incident.", S["small"]))
 
+    # ---- dissemination ---------------------------------------------------
+    A(Paragraph("10. Dissemination - Coast Guard alert", S["h"]))
+    try:
+        from samudra.dissemination import alert as _alert
+
+        # write=False: a dossier must not mutate the directory it attests to.
+        al = _alert.build(incident_id, root, write=False)
+    except Exception as exc:  # noqa: BLE001 - never fail a dossier over layer 11
+        al = None
+        A(Paragraph(f"Alert not composed for this incident ({exc}).", S["small"]))
+
+    if al:
+        A(
+            _table(
+                [
+                    ["Field", "Value"],
+                    ["Alert ID", al["alert_id"]],
+                    ["Severity", f"{al['severity']} - {al['tier_label']}"],
+                    ["Basis", "; ".join(al["tier_reasons"])],
+                    ["Position", al["position"]["dms"]],
+                    [
+                        "Shore contact",
+                        f"forecast in {al['shore']['eta_hours']:.0f} h, "
+                        f"{al['shore']['affected_shoreline_km']:.1f} km affected"
+                        if al["shore"]["contact_forecast"]
+                        else "none within 72 h",
+                    ],
+                    ["Transmitted", "NO - composed and addressed only"],
+                ],
+                [34 * mm, 130 * mm],
+            )
+        )
+        A(Spacer(1, 6))
+        A(Paragraph("Distribution list", S["small"]))
+        rrows = [["Unit", "Role", "Range", "Bearing", "Action"]]
+        for r in al["recipients"]:
+            rrows.append(
+                [
+                    r["name"],
+                    r["role"].replace("_", " ").title(),
+                    f"{r['distance_km']:.0f} km",
+                    f"{r['bearing_deg']:.0f} deg",
+                    r["action"].split(" - ")[0].split(" — ")[0],
+                ]
+            )
+        A(
+            _table(
+                rrows,
+                [58 * mm, 24 * mm, 18 * mm, 18 * mm, 46 * mm],
+                align_right=[2, 3],
+            )
+        )
+        A(Spacer(1, 6))
+        for para in [
+            "Severity follows the National Oil Spill Disaster Contingency Plan "
+            "(NOS-DCP) tiering - Tier I local, Tier II regional, Tier III national - "
+            "because the tier determines which levels of command are on the "
+            "distribution list. NOS-DCP is written in tonnes and SAR measures area, "
+            "so slick area stands in for discharge volume. It is a proxy, not a "
+            "measurement of tonnage.",
+            "<b>Nothing was transmitted.</b> SAMUDRA composes and addresses the alert "
+            "and records what would be sent. It has no transport configured and no "
+            "authority to send. Issuing the alert remains a decision for the "
+            "coordinating authority.",
+            "Coast Guard establishment positions are compiled from public sources to "
+            "approximately one kilometre - sufficient to select the nearest unit and "
+            "state range and bearing, and to be verified against the current "
+            "establishment list before any operational use.",
+        ]:
+            A(Paragraph(para, S["body"]))
+            A(Spacer(1, 4))
+
     # ---- MARPOL ----------------------------------------------------------
-    A(Paragraph("10. Regulatory reference - MARPOL Annex I", S["h"]))
+    A(Paragraph("11. Regulatory reference - MARPOL Annex I", S["h"]))
     for para in [
         "Annex I of the International Convention for the Prevention of Pollution from "
         "Ships (MARPOL 73/78) governs the prevention of pollution by oil and entered "
@@ -602,7 +674,7 @@ def build(incident_id: str, root: Path = Path("artifacts")) -> Path:
 
     # ---- chain of custody ------------------------------------------------
     A(PageBreak())
-    A(Paragraph("11. Chain of custody", S["h"]))
+    A(Paragraph("12. Chain of custody", S["h"]))
     A(
         Paragraph(
             "SHA-256 over the canonical JSON of every pipeline artifact, appended to "

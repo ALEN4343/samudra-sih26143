@@ -1,0 +1,47 @@
+{
+  "source": "Compiled from publicly listed Indian Coast Guard establishment locations. Positions are the station's shore location to the nearest ~1 km and are adequate for nearest-unit selection and bearing/range display. VERIFY against the current ICG establishment list before any operational use.",
+  "authority": "Indian Coast Guard is the Central Coordinating Authority for marine oil pollution response under NOS-DCP (National Oil Spill Disaster Contingency Plan).",
+  "compiled_for": "SAMUDRA layer 11 — dissemination and alerting (CLAUDE.md 5.8)",
+  "stations": [
+    {"id": "ICG-HQ-DEL",  "name": "Coast Guard Headquarters, New Delhi", "role": "NATIONAL_HQ",   "region": "National",        "lat": 28.613, "lon": 77.209, "mrcc": false, "nosdcp_tier_min": 3},
+
+    {"id": "CGRHQ-W",     "name": "Coast Guard Region (West), Mumbai",        "role": "REGION_HQ", "region": "West",       "lat": 18.925, "lon": 72.836, "mrcc": true,  "nosdcp_tier_min": 2},
+    {"id": "CGRHQ-NW",    "name": "Coast Guard Region (North West), Gandhinagar", "role": "REGION_HQ", "region": "North West", "lat": 23.216, "lon": 72.650, "mrcc": false, "nosdcp_tier_min": 2},
+    {"id": "CGRHQ-E",     "name": "Coast Guard Region (East), Chennai",       "role": "REGION_HQ", "region": "East",       "lat": 13.083, "lon": 80.283, "mrcc": true,  "nosdcp_tier_min": 2},
+    {"id": "CGRHQ-NE",    "name": "Coast Guard Region (North East), Kolkata", "role": "REGION_HQ", "region": "North East", "lat": 22.572, "lon": 88.364, "mrcc": false, "nosdcp_tier_min": 2},
+    {"id": "CGRHQ-AN",    "name": "Coast Guard Region (A&N), Port Blair",     "role": "REGION_HQ", "region": "Andaman & Nicobar", "lat": 11.623, "lon": 92.726, "mrcc": true, "nosdcp_tier_min": 2},
+
+    {"id": "CGDHQ-16", "name": "CGDHQ-16 Jakhau",         "role": "DISTRICT_HQ", "region": "North West", "lat": 23.222, "lon": 68.638, "mrcc": false, "nosdcp_tier_min": 1},
+    {"id": "CGDHQ-01", "name": "CGDHQ-1 Porbandar",       "role": "DISTRICT_HQ", "region": "North West", "lat": 21.641, "lon": 69.609, "mrcc": false, "nosdcp_tier_min": 1},
+    {"id": "CGS-OKHA",  "name": "CG Station Okha",         "role": "STATION",     "region": "North West", "lat": 22.468, "lon": 69.071, "mrcc": false, "nosdcp_tier_min": 1},
+    {"id": "CGS-VADINAR","name": "CG Station Vadinar",     "role": "STATION",     "region": "North West", "lat": 22.350, "lon": 69.723, "mrcc": false, "nosdcp_tier_min": 1},
+    {"id": "CGS-VERAVAL","name": "CG Station Veraval",     "role": "STATION",     "region": "North West", "lat": 20.906, "lon": 70.367, "mrcc": false, "nosdcp_tier_min": 1},
+    {"id": "CGDHQ-02", "name": "CGDHQ-2 Daman",           "role": "DISTRICT_HQ", "region": "West",       "lat": 20.418, "lon": 72.842, "mrcc": false, "nosdcp_tier_min": 1},
+    {"id": "CGS-MURUD", "name": "CG Station Murud-Janjira","role": "STATION",     "region": "West",       "lat": 18.327, "lon": 72.963, "mrcc": false, "nosdcp_tier_min": 1},
+    {"id": "CGS-RTG",   "name": "CG Station Ratnagiri",    "role": "STATION",     "region": "West",       "lat": 16.988, "lon": 73.300, "mrcc": false, "nosdcp_tier_min": 1},
+    {"id": "CGDHQ-11", "name": "CGDHQ-11 Goa (Mormugao)", "role": "DISTRICT_HQ", "region": "West",       "lat": 15.402, "lon": 73.801, "mrcc": false, "nosdcp_tier_min": 1},
+    {"id": "CGS-KARWAR","name": "CG Station Karwar",       "role": "STATION",     "region": "West",       "lat": 14.812, "lon": 74.130, "mrcc": false, "nosdcp_tier_min": 1},
+    {"id": "CGDHQ-03", "name": "CGDHQ-3 New Mangalore",   "role": "DISTRICT_HQ", "region": "West",       "lat": 12.923, "lon": 74.804, "mrcc": false, "nosdcp_tier_min": 1},
+    {"id": "CGS-BEYPORE","name": "CG Station Beypore",     "role": "STATION",     "region": "West",       "lat": 11.172, "lon": 75.803, "mrcc": false, "nosdcp_tier_min": 1},
+    {"id": "CGDHQ-04", "name": "CGDHQ-4 Kochi",           "role": "DISTRICT_HQ", "region": "West",       "lat": 9.966,  "lon": 76.259, "mrcc": false, "nosdcp_tier_min": 1},
+    {"id": "CGS-VIZHINJAM","name": "CG Station Vizhinjam", "role": "STATION",    "region": "West",       "lat": 8.378,  "lon": 76.993, "mrcc": false, "nosdcp_tier_min": 1},
+    {"id": "CGDHQ-12", "name": "CGDHQ-12 Kavaratti",      "role": "DISTRICT_HQ", "region": "West",       "lat": 10.567, "lon": 72.642, "mrcc": false, "nosdcp_tier_min": 1},
+    {"id": "CGS-MINICOY","name": "CG Station Minicoy",     "role": "STATION",     "region": "West",       "lat": 8.283,  "lon": 73.049, "mrcc": false, "nosdcp_tier_min": 1},
+    {"id": "CGS-ANDROTH","name": "CG Station Androth",     "role": "STATION",     "region": "West",       "lat": 10.820, "lon": 73.679, "mrcc": false, "nosdcp_tier_min": 1},
+
+    {"id": "CGDHQ-05", "name": "CGDHQ-5 Tuticorin",       "role": "DISTRICT_HQ", "region": "East",       "lat": 8.764,  "lon": 78.139, "mrcc": false, "nosdcp_tier_min": 1},
+    {"id": "CGS-MANDAPAM","name": "CG Station Mandapam",   "role": "STATION",    "region": "East",       "lat": 9.277,  "lon": 79.124, "mrcc": false, "nosdcp_tier_min": 1},
+    {"id": "CGDHQ-06", "name": "CGDHQ-6 Chennai",         "role": "DISTRICT_HQ", "region": "East",       "lat": 13.100, "lon": 80.292, "mrcc": false, "nosdcp_tier_min": 1},
+    {"id": "CGS-KRISHNAPATNAM","name": "CG Station Krishnapatnam","role":"STATION","region":"East",       "lat": 14.259, "lon": 80.119, "mrcc": false, "nosdcp_tier_min": 1},
+    {"id": "CGS-KAKINADA","name": "CG Station Kakinada",   "role": "STATION",    "region": "East",       "lat": 16.942, "lon": 82.244, "mrcc": false, "nosdcp_tier_min": 1},
+    {"id": "CGDHQ-07", "name": "CGDHQ-7 Visakhapatnam",   "role": "DISTRICT_HQ", "region": "East",       "lat": 17.694, "lon": 83.281, "mrcc": false, "nosdcp_tier_min": 1},
+    {"id": "CGS-GOPALPUR","name": "CG Station Gopalpur",   "role": "STATION",    "region": "North East", "lat": 19.261, "lon": 84.902, "mrcc": false, "nosdcp_tier_min": 1},
+    {"id": "CGDHQ-08", "name": "CGDHQ-8 Paradip",         "role": "DISTRICT_HQ", "region": "North East", "lat": 20.265, "lon": 86.674, "mrcc": false, "nosdcp_tier_min": 1},
+    {"id": "CGDHQ-09", "name": "CGDHQ-9 Haldia",          "role": "DISTRICT_HQ", "region": "North East", "lat": 22.033, "lon": 88.098, "mrcc": false, "nosdcp_tier_min": 1},
+    {"id": "CGS-FRASERGUNJ","name": "CG Station Frasergunj","role": "STATION",   "region": "North East", "lat": 21.568, "lon": 88.272, "mrcc": false, "nosdcp_tier_min": 1},
+
+    {"id": "CGDHQ-10", "name": "CGDHQ-10 Port Blair",     "role": "DISTRICT_HQ", "region": "Andaman & Nicobar", "lat": 11.667, "lon": 92.735, "mrcc": false, "nosdcp_tier_min": 1},
+    {"id": "CGS-DIGLIPUR","name": "CG Station Diglipur",   "role": "STATION",    "region": "Andaman & Nicobar", "lat": 13.250, "lon": 92.980, "mrcc": false, "nosdcp_tier_min": 1},
+    {"id": "CGS-CAMPBELL","name": "CG Station Campbell Bay","role": "STATION",   "region": "Andaman & Nicobar", "lat": 7.012,  "lon": 93.925, "mrcc": false, "nosdcp_tier_min": 1}
+  ]
+}

@@ -67,6 +67,25 @@ def land_mask(
     # Buffer in degrees, approximated at this latitude only for the buffer width.
     lat_mid = (bounds.bottom + bounds.top) / 2
     deg = buffer_m / (111_320.0 * max(np.cos(np.radians(lat_mid)), 0.2))
+
+    # Clip to the scene before buffering. A real Natural Earth file holds the
+    # WHOLE WORLD's coastline, and buffering all of it to rasterise one scene
+    # took this single call from milliseconds to 142 s — measured, it was the
+    # slowest thing in the test suite by two orders of magnitude. The pad is the
+    # buffer itself, so coast just outside the scene still thickens into it and
+    # the mask is identical to the unclipped one.
+    from shapely.geometry import box
+
+    pad = deg * 2
+    window = box(bounds.left - pad, bounds.bottom - pad,
+                 bounds.right + pad, bounds.top + pad)
+    try:
+        geom = geom.intersection(window)
+    except Exception:  # noqa: BLE001 - topology error on a pathological input
+        pass
+    if geom.is_empty:
+        return np.zeros(shape, dtype=bool)
+
     buffered = geom.buffer(deg)
     if buffered.is_empty:
         return np.zeros(shape, dtype=bool)

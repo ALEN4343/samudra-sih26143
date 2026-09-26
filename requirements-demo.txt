@@ -1,0 +1,35 @@
+# Dashboard + full attribution pipeline, without the training stack.
+# torch/torchvision are omitted on purpose: they are only used by
+# detection/segmenter.py and detection/train.py. With no checkpoint present the
+# pipeline uses the synthetic slick, which is the documented fallback.
+#
+# CONSEQUENCE FOR THE SATELLITE CONSOLE (/ops -> Satellite): its whole point is
+# that the model really runs, so REAL SATELLITE REPLAY needs torch AND a
+# checkpoint. With this file alone the page still lists acquisitions and shows
+# their provenance, and reports that no model is installed rather than
+# producing a mask from nowhere. For the full demo install torch as well:
+#
+#   CPU:  pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+#   CUDA: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
+numpy
+pandas
+geopandas
+shapely
+pyproj
+h3
+duckdb
+pydantic
+fastapi
+uvicorn
+reportlab
+matplotlib
+requests
+scipy
+rasterio
+scikit-learn
+pyarrow
+pyyaml
+Pillow
+zstandard
+pytest
+truststore

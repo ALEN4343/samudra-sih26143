@@ -38,7 +38,7 @@ def dn_to_linear(dn: np.ndarray, db_min: float, db_max: float) -> np.ndarray:
 
 
 def read_scene(path: Path | str):
-    """Return (linear intensity, transform, bounds, db_min, db_max)."""
+    """Return (linear intensity, transform, bounds, db_min, db_max, crs)."""
     with rasterio.open(path) as src:
         band = src.read(1)
         tags = src.tags()
@@ -47,13 +47,18 @@ def read_scene(path: Path | str):
         if band.dtype == np.uint8:
             lin = dn_to_linear(band, db_min, db_max)
         else:
-            # Already calibrated: assume dB if the range looks like dB.
-            lin = (
-                np.power(10.0, band.astype(np.float32) / 10.0)
-                if band.min() < 0
-                else band.astype(np.float32)
-            )
-        return lin, src.transform, src.bounds, db_min, db_max
+            band = band.astype(np.float32)
+            # A calibrated product carries NaN for unobserved pixels, and NaN
+            # fails every comparison silently — `band.min() < 0` is False for an
+            # all-NaN-bordered dB raster, which would send real dB down the
+            # linear branch and make every target's intensity meaningless.
+            finite = np.isfinite(band)
+            looks_like_db = bool(finite.any() and np.nanmin(band) < 0)
+            lin = np.power(10.0, band / 10.0) if looks_like_db else band
+            # Unobserved stays unobserved: zero intensity can never exceed a
+            # CFAR threshold, so nodata cannot manufacture a ship.
+            lin = np.where(finite, lin, 0.0).astype(np.float32)
+        return lin, src.transform, src.bounds, db_min, db_max, src.crs
 
 
 def cfar_mask(
@@ -97,6 +102,7 @@ def group_targets(
     pixel_m: float,
     min_pixels: int = 5,
     close_iter: int = 1,
+    to_lonlat=None,
 ) -> list[dict]:
     """Morphological grouping into targets, with a length per component.
 
@@ -146,7 +152,11 @@ def group_targets(
             bearing = 0.0
         major_px = max(major_px, math.sqrt(npx))
 
-        lon, lat = rasterio.transform.xy(transform, cy, cx)
+        # These are the raster's own map coordinates, which are degrees only
+        # when the product is geographic. EOS-04 ships UTM, where they are
+        # metres — emitting those as lon/lat puts every vessel off the planet.
+        mx, my = rasterio.transform.xy(transform, cy, cx)
+        lon, lat = to_lonlat(mx, my) if to_lonlat is not None else (mx, my)
         out.append(
             {
                 "det_id": f"cfar-{len(out):04d}",
@@ -173,7 +183,7 @@ def detect(
     land_mask: np.ndarray | None = None,
 ) -> tuple[list[dict], dict]:
     """Run CFAR over a scene and return (targets, summary)."""
-    lin, transform, bounds, db_min, db_max = read_scene(scene_path)
+    lin, transform, bounds, db_min, db_max, crs = read_scene(scene_path)
 
     mask, z = cfar_mask(lin, k=k, guard=guard, background=background)
     if land_mask is not None:
@@ -181,18 +191,32 @@ def detect(
         # structures are far brighter than any ship and would dominate.
         mask &= ~land_mask
 
-    proj = Projector((bounds.bottom + bounds.top) / 2, (bounds.left + bounds.right) / 2)
-    x0, y0 = proj.to_m(bounds.left, bounds.bottom)
-    x1, y1 = proj.to_m(bounds.right, bounds.top)
-    pixel_m = float(abs(x1 - x0) / lin.shape[1])
+    projected = crs is not None and crs.to_epsg() != 4326
+    to_lonlat = None
+    if projected:
+        from pyproj import Transformer
 
-    targets = group_targets(mask, lin, transform, pixel_m, min_pixels=min_pixels)
+        _tr = Transformer.from_crs(crs, "EPSG:4326", always_xy=True)
+        to_lonlat = _tr.transform
+        # A projected grid already measures in metres, so the pixel size is the
+        # transform's own scale. No spherical approximation needed.
+        pixel_m = float(abs(transform.a))
+    else:
+        proj = Projector((bounds.bottom + bounds.top) / 2,
+                         (bounds.left + bounds.right) / 2)
+        x0, _ = proj.to_m(bounds.left, bounds.bottom)
+        x1, _ = proj.to_m(bounds.right, bounds.top)
+        pixel_m = float(abs(x1 - x0) / lin.shape[1])
+
+    targets = group_targets(mask, lin, transform, pixel_m,
+                            min_pixels=min_pixels, to_lonlat=to_lonlat)
     targets.sort(key=lambda t: -t["peak_intensity"])
 
     return targets, {
         "scene": str(scene_path),
         "shape": list(lin.shape),
         "pixel_m": pixel_m,
+        "crs": str(crs) if crs is not None else None,
         "k": k,
         "guard": guard,
         "background": background,
