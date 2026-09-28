@@ -8,13 +8,14 @@ what the dashboard shows and what the dossier records cannot diverge.
 from __future__ import annotations
 
 import json
+import os
 from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from samudra.attribution import drift
@@ -614,6 +615,12 @@ def get_audit() -> dict:
 
 @app.get("/")
 def index():
+    # A hosted deployment sets SAMUDRA_HOME=/investigate so a shared link lands
+    # on the investigator view. Unset (the default, and every local run), / is
+    # the original page exactly as before.
+    home = os.environ.get("SAMUDRA_HOME")
+    if home:
+        return RedirectResponse(home)
     f = WEB / "index.html"
     if not f.exists():
         raise HTTPException(404, "web/index.html not found")
