@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SAMUDRA — Investigation</title>
+<meta name="description" content="Oil-spill detection, drift reconstruction and vessel attribution — investigator view.">
+<!--
+  Investigator view. A redesigned COPY of web/index.html (route /), which is
+  left untouched. Every number on this page is read from the SAMUDRA API, which
+  serves the pipeline's own artifacts; nothing here computes a score, a drift or
+  a forecast of its own. Derived display values (percentages, displacement of a
+  forecast polygon's centre) are arithmetic on those outputs and are labelled.
+-->
+<link rel="stylesheet" href="/static/vendor/leaflet.css">
+<script src="/static/vendor/leaflet.js"></script>
+<script>
+  if (typeof L === "undefined") {
+    document.write('<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>');
+    document.write('<scr'+'ipt src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></scr'+'ipt>');
+  }
+</script>
+<link rel="stylesheet" href="/static/investigate/style.css?v=9">
+</head>
+<body>
+<a class="skip" href="#panel">Skip to analysis</a>
+<div class="boot" id="boot">LOADING CASE…</div>
+
+<!-- ============================================================ header -->
+<header class="topbar">
+  <div class="brand">
+    <svg viewBox="0 0 32 32" aria-hidden="true">
+      <circle cx="16" cy="16" r="14.5" fill="none" stroke="#2c3845"/>
+      <path d="M4 18c3-2 6-2 9 0s6 2 9 0 5-2 6-1" fill="none" stroke="#6ea8fe" stroke-width="1.6" stroke-linecap="round"/>
+      <path d="M10 13c2.5-3.4 9.5-3.4 12 0-2.5 2.3-9.5 2.3-12 0z" fill="#ff8a3d" opacity=".9"/>
+    </svg>
+    <div><b>SAMUDRA</b><small>Oil-spill attribution</small></div>
+  </div>
+  <span class="mode" id="mode" hidden></span>
+  <label class="hfield"><span>Case</span><select id="pick" aria-label="Select case"></select></label>
+  <div class="hfield acqf"><span>Acquisition</span><b id="acq" class="num">—</b></div>
+  <div class="status" id="status" role="status"><i></i><span>Loading</span></div>
+  <div class="actions">
+    <button class="btn" id="btnReplay" aria-label="Replay drift" title="Replay the drift from the reconstructed origin to the observed slick">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg>
+      <span class="lbl">Replay drift</span></button>
+    <button class="btn primary" id="btnDossier" aria-label="Generate evidence dossier" title="Generate the PDF evidence dossier (re-hashes every artifact)">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.5h5.5L13 5v9.5H4z" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M9.5 1.5V5H13M6 8.5h5M6 11h5" stroke="currentColor" stroke-width="1.3"/></svg>
+      <span class="lbl">Generate evidence dossier</span></button>
+  </div>
+</header>
+
+<!-- ====================================================== case summary -->
+<section class="summary" aria-label="Case summary">
+  <div class="headline">
+    <div class="eyebrow">Case summary</div>
+    <h1><span class="dot" aria-hidden="true"></span><span id="headline">—</span></h1>
+    <div class="loc" id="loc"></div>
+  </div>
+  <dl class="kpis" id="kpis"></dl>
+  <ol class="pipeline" id="pipeline" aria-label="Investigation pipeline"></ol>
+</section>
+
+<!-- ========================================================= workspace -->
+<main class="workspace">
+  <div class="mapcol" id="mapcol">
+    <div id="map" role="region" aria-label="Investigation map"></div>
+
+    <div class="mapctl tl">
+      <div class="seg" role="group" aria-label="Map view">
+        <button id="vAnalysis" aria-pressed="true">Analysis</button>
+        <button id="vSat" aria-pressed="false">Satellite evidence</button>
+      </div>
+    </div>
+
+    <div class="mapctl tr">
+      <div style="position:relative">
+        <button class="popbtn" id="baseBtn" aria-expanded="false" aria-controls="basePop">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5 1.5 5 8 8.5 14.5 5zM1.5 8 8 11.5 14.5 8M1.5 11 8 14.5 14.5 11" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+          Basemap</button>
+        <div class="pop" id="basePop" hidden>
+          <h4>Basemap</h4>
+          <label><input type="radio" name="base" value="dark" checked> Dark (default)</label>
+          <label><input type="radio" name="base" value="ocean"> Ocean</label>
+          <label><input type="radio" name="base" value="imagery"> Optical imagery</label>
+          <div class="hint">Optical imagery is a general Esri basemap, not the SAR acquisition analysed here.</div>
+          <hr>
+          <h4>Context</h4>
+          <label><input type="checkbox" id="optLabels" checked> Place labels</label>
+          <label><input type="checkbox" id="optGrid" checked> Lat / lon grid</label>
+          <label><input type="checkbox" id="optCoast" checked> Coastline (offline vectors)</label>
+          <label><input type="checkbox" id="optIndia" checked> India boundary</label>
+          <div class="hint">Tiles need network access. The coastline is served locally and works offline.</div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn panel-toggle" id="panelToggle" aria-controls="panel" aria-expanded="true">Analysis</button>
+
+    <div class="legend" id="legend" aria-label="Map legend">
+      <header><b>MAP LEGEND</b><button id="legendFold" aria-expanded="true">Hide</button></header>
+      <ul id="legendList"></ul>
+      <div class="foot">Click an item to show or hide it.</div>
+    </div>
+
+    <div class="hud" id="simHud" hidden role="region" aria-label="Discharge simulation" aria-live="polite"></div>
+    <div class="satcard" id="satCard" hidden aria-live="polite"></div>
+
+    <div class="timebar" id="timebar">
+      <div class="tb-h">
+        <div class="eyebrow">Slick timeline</div>
+        <div class="seg" role="tablist" aria-label="Forecast horizon" id="horizons">
+          <button role="tab" data-h="0" aria-selected="true">Observed</button>
+          <button role="tab" data-h="24" aria-selected="false">+24 h</button>
+          <button role="tab" data-h="48" aria-selected="false">+48 h</button>
+          <button role="tab" data-h="72" aria-selected="false">+72 h</button>
+        </div>
+      </div>
+      <div class="scrub">
+        <div class="scrub-top">
+          <button class="playbtn" id="play" aria-label="Play timeline">
+            <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5v9l7-4.5z" fill="currentColor"/></svg></button>
+          <div class="track">
+            <div class="axis" id="axis"></div>
+            <div id="marks"></div>
+            <input type="range" id="range" min="0" max="1000" step="1" value="0"
+                   aria-label="Incident time: reconstructed past, acquisition, forecast">
+          </div>
+        </div>
+      </div>
+      <div class="tnow">
+        <b id="tnow">—</b>
+        <span id="trel">—</span>
+        <div><span class="phase obs" id="tphase">Observed</span></div>
+        <div class="tsub" id="tsub"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================== analysis panel -->
+  <aside class="panel" id="panel" aria-label="Analysis" tabindex="-1">
+    <section class="psec hero" id="secTop" aria-labelledby="heroEyebrow"></section>
+    <section class="psec" id="secCands">
+      <h2>Candidate vessels <span class="r" id="candCount"></span></h2>
+      <div class="clist" id="clist"></div>
+      <div class="rowbtns"><button class="btn sm" id="btnCompare">Compare candidates</button></div>
+    </section>
+    <section class="psec" id="secFunnel">
+      <h2>Vessel filtering <button class="info" data-tip="Every vessel reporting in the scene is tested against the reverse-drift origin envelope in space AND time. Only vessels that were inside it at the matching hour are simulated and scored.">i</button></h2>
+      <div id="funnel"></div>
+    </section>
+    <section class="psec" id="secEvidence"></section>
+    <section class="psec" id="secForecast">
+      <h2>Forecast <span class="r">forward drift of the observed slick</span></h2>
+      <div id="forecast"></div>
+    </section>
+    <section class="psec" id="secSlick">
+      <h2>Slick &amp; conditions</h2>
+      <div id="slick"></div>
+    </section>
+    <section class="psec" id="secData">
+      <h2>Data &amp; provenance</h2>
+      <div id="data"></div>
+    </section>
+    <div class="pfoot" id="pfoot"></div>
+  </aside>
+</main>
+
+<!-- ========================================================== dialogs -->
+<dialog id="dlgCompare" aria-labelledby="dlgCompareT">
+  <header><h3 id="dlgCompareT">Compare candidate vessels</h3><button class="btn sm" data-close>Close</button></header>
+  <div class="db" id="compareBody"></div>
+</dialog>
+<dialog id="dlgFilter" aria-labelledby="dlgFilterT">
+  <header><h3 id="dlgFilterT">Why were vessels filtered out?</h3><button class="btn sm" data-close>Close</button></header>
+  <div class="db" id="filterBody"></div>
+</dialog>
+
+<div id="tip" role="tooltip"></div>
+<div id="toast" role="alert" hidden></div>
+
+<script src="/static/investigate/app.js?v=9"></script>
+</body>
+</html>
