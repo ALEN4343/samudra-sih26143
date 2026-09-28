@@ -1,0 +1,122 @@
+{
+  "alert_id": "SAMUDRA-demo-001-20260114T0630Z",
+  "incident_id": "demo-001",
+  "issued_at": "2026-09-28T18:26:45.795066+00:00",
+  "acquisition_at": "2026-01-14T06:30:00+00:00",
+  "severity": "ALERT",
+  "nosdcp_tier": 2,
+  "tier_label": "TIER II \u2014 regional",
+  "tier_reasons": [
+    "slick area 83.9 km\u00b2 \u2265 25 km\u00b2"
+  ],
+  "position": {
+    "lat": 16.124673738892703,
+    "lon": 69.72390098597533,
+    "dms": "16\u00b007.48'N 69\u00b043.43'E"
+  },
+  "slick": {
+    "area_km2": 83.85768421816859,
+    "major_axis_deg": 41.71939849197443,
+    "age_hours": 8.5
+  },
+  "shore": {
+    "contact_forecast": false,
+    "eta_hours": null,
+    "affected_shoreline_km": 0.0,
+    "closest_approach_km": 281.2464016815413
+  },
+  "top_suspect": {
+    "mmsi": 461279535,
+    "vessel_name": "PACIFIC PIONEER",
+    "vessel_type": "Bulk Carrier",
+    "flag": "OM",
+    "posterior": 0.7062694252417062,
+    "classification": "MATCHED"
+  },
+  "recipients": [
+    {
+      "id": "CGS-RTG",
+      "name": "CG Station Ratnagiri",
+      "role": "STATION",
+      "region": "West",
+      "lat": 16.988,
+      "lon": 73.3,
+      "mrcc": false,
+      "nosdcp_tier_min": 1,
+      "distance_km": 393.1,
+      "bearing_deg": 256.4,
+      "action": "RESPONSE \u2014 nearest unit, pollution response team"
+    },
+    {
+      "id": "CGS-MURUD",
+      "name": "CG Station Murud-Janjira",
+      "role": "STATION",
+      "region": "West",
+      "lat": 18.327,
+      "lon": 72.963,
+      "mrcc": false,
+      "nosdcp_tier_min": 1,
+      "distance_km": 422.3,
+      "bearing_deg": 235.0,
+      "action": "RESPONSE \u2014 nearest unit, pollution response team"
+    },
+    {
+      "id": "CGDHQ-11",
+      "name": "CGDHQ-11 Goa (Mormugao)",
+      "role": "DISTRICT_HQ",
+      "region": "West",
+      "lat": 15.402,
+      "lon": 73.801,
+      "mrcc": false,
+      "nosdcp_tier_min": 1,
+      "distance_km": 443.6,
+      "bearing_deg": 281.0,
+      "action": "RESPONSE \u2014 nearest unit, pollution response team"
+    },
+    {
+      "id": "CGS-KARWAR",
+      "name": "CG Station Karwar",
+      "role": "STATION",
+      "region": "West",
+      "lat": 14.812,
+      "lon": 74.13,
+      "mrcc": false,
+      "nosdcp_tier_min": 1,
+      "distance_km": 494.2,
+      "bearing_deg": 287.8,
+      "action": "RESPONSE \u2014 nearest unit, pollution response team"
+    },
+    {
+      "id": "CGRHQ-W",
+      "name": "Coast Guard Region (West), Mumbai",
+      "role": "REGION_HQ",
+      "region": "West",
+      "lat": 18.925,
+      "lon": 72.836,
+      "mrcc": true,
+      "nosdcp_tier_min": 2,
+      "distance_km": 453.7,
+      "bearing_deg": 227.1,
+      "action": "COORDINATION \u2014 MRCC / regional response coordination"
+    },
+    {
+      "id": "CGRHQ-NW",
+      "name": "Coast Guard Region (North West), Gandhinagar",
+      "role": "REGION_HQ",
+      "region": "North West",
+      "lat": 23.216,
+      "lon": 72.65,
+      "mrcc": false,
+      "nosdcp_tier_min": 2,
+      "distance_km": 845.9,
+      "bearing_deg": 201.7,
+      "action": "COORDINATION \u2014 MRCC / regional response coordination"
+    }
+  ],
+  "message": "PRIORITY ALERT  //  MARPOL ANNEX I \u2014 SUSPECTED OPERATIONAL DISCHARGE\nNOS-DCP TIER II \u2014 REGIONAL\n\nTO   : CG Station Ratnagiri, CG Station Murud-Janjira, CGDHQ-11 Goa (Mormugao), CG Station Karwar, Coast Guard Region (West), Mumbai, Coast Guard Region (North West), Gandhinagar\nFROM : SAMUDRA attribution engine \u2014 incident demo-001\nDTG  : 281826Z SEP 2026\n\n1. POSITION AND EXTENT\n   Slick centre 16\u00b007.48'N 69\u00b043.43'E\n   Area 83.9 km2, long axis 42 deg true, eccentricity 0.985\n   Detected on SAR scene acquired 14 Jan 2026 0630Z\n\n2. CONDITIONS AT ACQUISITION\n   Wind 6.7 m/s from 92 deg \u2014 detection wind gate PASS\n   Surface current 0.23 m/s setting 131 deg\n   Estimated slick age 8.5 h (8.0\u20139.0 h)\n\n3. FORECAST\n   No shoreline contact within 72 h. Closest approach 281 km.\n\n4. ATTRIBUTION\n   Highest-ranked candidate: PACIFIC PIONEER (MMSI 461279535, flag OM, Bulk Carrier)\n   Posterior 0.706 over 3 ranked candidates.\n   THIS IS A RANKED LIKELIHOOD, NOT AN ACCUSATION. Full reasoning, hypothesis geometry and\n   hash-chained evidence are in the attached dossier.\n\n5. REQUESTED ACTION\n   Nearest unit: verify by surface or air sortie, photograph and sample if slick is confirmed.\n   Regional HQ: assess response tier and mobilise pollution response equipment as required.\n\nATTACHMENT: dossier_demo-001.pdf (evidence dossier, SHA-256 hash-chained)\n\n// SAMUDRA is a decision-support system. Operational action remains the responsibility of the\n// coordinating authority. //",
+  "attachment": "dossier_demo-001.pdf",
+  "legal_basis": "MARPOL 73/78 Annex I; Merchant Shipping Act 1958 Part XB; response under NOS-DCP with the Indian Coast Guard as Central Coordinating Authority.",
+  "transmitted": false,
+  "transmission_note": "SAMUDRA composes and addresses the alert but does not transmit it. No message has left this machine. Wiring a transport requires real, verified recipient addresses and an authority to send, which is a deployment decision outside this system.",
+  "station_source": "Compiled from publicly listed Indian Coast Guard establishment locations. Positions are the station's shore location to the nearest ~1 km and are adequate for nearest-unit selection and bearing/range display. VERIFY against the current ICG establishment list before any operational use."
+}

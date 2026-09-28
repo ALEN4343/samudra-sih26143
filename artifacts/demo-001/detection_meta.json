@@ -1,0 +1,17 @@
+{
+  "checkpoint": "data\\models\\seg.pt",
+  "representative": true,
+  "epoch": 7,
+  "oil_iou": null,
+  "threshold": 0.5,
+  "oil_fraction": 0.0020154823810834355,
+  "gates": {
+    "wind_min_ms": 4.135996149797359,
+    "wind_max_ms": 8.819490698992919,
+    "wind_mean_ms": 6.679409917706592,
+    "gate_lo": 3.0,
+    "gate_hi": 10.0,
+    "fraction_in_band": 1.0,
+    "land_fraction": 0.0018802125353684662
+  }
+}
