@@ -35,8 +35,30 @@ if (!/^https?:$/.test(location.protocol)) {
   throw new Error('investigator view must be served by the API');
 }
 
+/* Static mode. scripts/export_static.py writes every API response this page
+   uses to plain files and sets window.SAMUDRA_STATIC, so the page can be hosted
+   anywhere without the Python server. api() maps each API path to its exported
+   file; with the flag unset it returns the path untouched, so the live app is
+   unchanged. The exported files ARE the API's responses, so no number differs. */
+const STATIC = window.SAMUDRA_STATIC === true;
+function api(u) {
+  if (!STATIC) return u;
+  if (u === '/api/incidents') return 'data/incidents.json';
+  if (u === '/api/config/scoring') return 'data/scoring.json';
+  if (u.startsWith('/api/basemap/coastline')) return 'data/coastline.json';
+  if (u.startsWith('/static/')) return u.slice('/static/'.length);
+  const m = u.match(/^\/api\/incident\/([^/?]+)(?:\/([a-z.]+))?(?:\?mmsi=(\d+))?$/);
+  if (!m) return u;
+  const id = decodeURIComponent(m[1]), k = m[2];
+  if (!k) return `data/${id}/incident.json`;
+  if (k === 'replay') return `data/${id}/replay_${m[3]}.json`;
+  if (k === 'dossier') return `data/${id}/dossier_${id}.pdf`;
+  if (k === 'scene.png') return `data/${id}/scene.png`;
+  return `data/${id}/${k}.json`;
+}
+
 async function jget(u) {
-  const r = await fetch(u);
+  const r = await fetch(api(u));
   if (!r.ok) throw new Error(`${u} → ${r.status} ${(await r.text()).slice(0, 200)}`);
   return r.json();
 }
@@ -973,7 +995,9 @@ function renderData() {
       <dt>Environment field</dt><dd>env.npz ${inc.synthetic ? '(scenario)' : '(supplied with case)'}</dd>
       <dt>Alert</dt><dd>${S.alert ? `${esc(S.alert.severity)} · composed, not transmitted` : '—'}</dd>
     </dl>
-    <p class="note" style="margin-top:10px">Other views: <a href="/" style="color:var(--cand)">original dashboard</a> · <a href="/app" style="color:var(--cand)">timeline</a> · <a href="/ops" style="color:var(--cand)">operations console</a></p>`;
+    ${STATIC
+      ? `<p class="note" style="margin-top:10px"><b>Hosted snapshot.</b> Every value here was computed by the SAMUDRA pipeline and exported ${esc(window.SAMUDRA_EXPORTED_AT || '')}; the evidence dossier was generated at export time. Code and full system: <a href="https://github.com/ALEN4343/samudra-sih26143" style="color:var(--cand)">GitHub</a>.</p>`
+      : `<p class="note" style="margin-top:10px">Other views: <a href="/" style="color:var(--cand)">original dashboard</a> · <a href="/app" style="color:var(--cand)">timeline</a> · <a href="/ops" style="color:var(--cand)">operations console</a></p>`}`;
 }
 function renderFoot() {
   $('#pfoot').innerHTML = `Model output is decision-support evidence and does not establish legal responsibility. Candidates are associated with the event by spatio-temporal and geometric correlation.${S.inc.synthetic ? ' <b>This case is a synthetic exercise, not a real-world incident.</b>' : ''}<br>Values are read from <code>artifacts/${esc(S.inc.incident_id)}/</code> through the SAMUDRA API.`;
@@ -1211,7 +1235,7 @@ function drawScene() {
     $('#satOv').onchange = e => { S.satOverlay = e.target.checked; applyVis(); };
     return;
   }
-  const img = L.imageOverlay(sc.image_url, sc.bounds, { pane: 'scene', opacity: 1, interactive: false }).addTo(G.scene);
+  const img = L.imageOverlay(api(sc.image_url), sc.bounds, { pane: 'scene', opacity: 1, interactive: false }).addTo(G.scene);
   L.rectangle(sc.bounds, { pane: 'scene', color: '#9aa7b4', weight: 1, dashArray: '4,4', fill: false, interactive: false }).addTo(G.scene);
   const feats = (sc.detections && sc.detections.features) || [];
   feats.forEach(ft => {
@@ -1246,9 +1270,9 @@ function drawScene() {
 /* ================================================================ dossier */
 $('#btnDossier').onclick = async () => {
   const b = $('#btnDossier'), l = b.querySelector('.lbl'), was = l.textContent;
-  b.disabled = true; l.textContent = 'Generating — re-hashing artifacts…';
+  b.disabled = true; l.textContent = STATIC ? 'Downloading…' : 'Generating — re-hashing artifacts…';
   try {
-    const r = await fetch(`/api/incident/${encodeURIComponent(S.inc.incident_id)}/dossier`);
+    const r = await fetch(api(`/api/incident/${encodeURIComponent(S.inc.incident_id)}/dossier`));
     if (!r.ok) throw new Error(`dossier → ${r.status} ${(await r.text()).slice(0, 160)}`);
     const blob = await r.blob(), url = URL.createObjectURL(blob), a = document.createElement('a');
     a.href = url; a.download = `dossier_${S.inc.incident_id}.pdf`;

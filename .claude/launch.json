@@ -6,6 +6,12 @@
       "runtimeExecutable": ".venv/Scripts/python.exe",
       "runtimeArgs": ["-m", "samudra.api", "--port", "8077"],
       "port": 8077
+    },
+    {
+      "name": "samudra-static",
+      "runtimeExecutable": ".venv/Scripts/python.exe",
+      "runtimeArgs": ["-m", "http.server", "8090", "--bind", "127.0.0.1", "--directory", "site"],
+      "port": 8090
     }
   ]
 }

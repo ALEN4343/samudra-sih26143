@@ -50,3 +50,6 @@ data/satellite/incoming/*.tif
 # GitHub Release and link from the README.
 *.pt
 training_runs/**/*.pt
+
+# Static export of the investigator view (scripts/export_static.py); rebuilt, never committed.
+site/
