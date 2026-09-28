@@ -264,6 +264,20 @@ function terms(h) {
       tech: `area_ratio (min/max) = ${fmt(h.area_ratio, 3)}` },
   };
 }
+/* Flags arrive as objects ({code, severity, detail, at, ...}) from the trust
+   stage; older artifacts may carry plain strings. Normalise both. */
+const flagCode = f => typeof f === 'string' ? f : (f && (f.code || f.type)) || '';
+const flagDetail = f => typeof f === 'string' ? f : [flagCode(f), f && f.detail].filter(Boolean).join(' — ');
+const codes = s => [...(s.trust_flags || []), ...(s.behaviour_flags || [])].map(flagCode);
+/* trust/score.py multiplies the behaviour prior by ais_gap_in_aoi when an
+   AIS_GAP trust flag is present, so a behaviour factor can move with no
+   behaviour flag at all — say where it came from. */
+function behaviourWhy(su) {
+  const b = (su.behaviour_flags || []).map(flagDetail);
+  const gap = (su.trust_flags || []).find(f => flagCode(f) === 'AIS_GAP');
+  if (gap) b.push(`AIS went silent inside the area${typeof gap === 'object' && gap.detail ? ` (${gap.detail})` : ''}`);
+  return b.length ? b.join('; ') : 'No anomalous behaviour flagged';
+}
 const factorTxt = v => Math.abs(v - 1) < 1e-9 ? { t: 'no effect', c: 'none' }
   : { t: `${v > 1 ? '+' : '−'}${fmt(Math.abs(v - 1) * 100, 0)}%`, c: v > 1 ? 'up' : 'down' };
 
@@ -646,8 +660,8 @@ function renderHero() {
     ...['iou','centroid','orientation','area'].map(k => ({ mk: band(T[k].v), t: T[k].label, small: T[k].what, v: T[k].value, vs: BAND_TXT[band(T[k].v)] })),
   ];
   if (su.gap_coincidence) rows.push({ mk: 'info', t: 'AIS gap around estimated release', small: 'The vessel stopped reporting AIS near the estimated release time.', v: 'Yes', vs: '' });
-  const flags = [...(su.trust_flags || []).map(x => `<span class="flag t" title="AIS integrity flag">${esc(x)}</span>`),
-    ...(su.behaviour_flags || []).map(x => `<span class="flag b" title="Behaviour flag">${esc(x)}</span>`)];
+  const flags = [...(su.trust_flags || []).map(x => `<span class="flag t" title="AIS integrity flag: ${esc(flagDetail(x))}">${esc(flagCode(x))}</span>`),
+    ...(su.behaviour_flags || []).map(x => `<span class="flag b" title="Behaviour flag: ${esc(flagDetail(x))}">${esc(flagCode(x))}</span>`)];
   const shares = inc.suspects.map(s => `<i class="${s.mmsi === S.sel ? 'on' : ''}" style="width:${Math.max(1, s.posterior * 100)}%" data-m="${s.mmsi}" title="#${s.rank} ${esc(s.vessel_name || s.mmsi)} · ${pct(s.posterior)}%"></i>`).join('');
   const meta = [su.vessel_type || 'Type not reported', su.length_m ? `${fmt(su.length_m, 0)} m` : null, su.flag ? `Flag ${esc(su.flag)}` : null, `MMSI ${su.mmsi}`].filter(Boolean).join(' · ');
   el.innerHTML = `
@@ -771,8 +785,8 @@ function renderEvidence() {
   const gapF = num(cfg.gap_coincidence) ? cfg.gap_coincidence : null;
   const factors = [
     ['Vessel-type factor', `${su.vessel_type || 'type not reported'} — tanker and bulk types weighted higher, fishing lower`, su.type_risk_prior],
-    ['AIS trust factor', (su.trust_flags || []).length ? `Flags: ${su.trust_flags.join(', ')}` : 'No AIS integrity issues found', su.trust_prior],
-    ['Behaviour factor', (su.behaviour_flags || []).length ? `Flags: ${su.behaviour_flags.join(', ')}` : 'No anomalous behaviour flagged', su.behaviour_prior],
+    ['AIS trust factor', (su.trust_flags || []).length ? `Flags: ${su.trust_flags.map(flagDetail).join('; ')}` : 'No AIS integrity issues found', su.trust_prior],
+    ['Behaviour factor', behaviourWhy(su), su.behaviour_prior],
     ['Origin-envelope position', 'Inside the envelope (edge positions are reduced)', su.proximity_prior],
     ['AIS gap at release', su.gap_coincidence ? 'Stopped reporting near the estimated release' : 'Reporting continuously around release', su.gap_coincidence ? gapF : 1],
     ['Prior confirmed offences', `${su.prior_offences || 0} on record`, 1 + (cfg.prior_offence_weight || 0) * (su.prior_offences || 0)],
@@ -796,7 +810,7 @@ posterior  = likelihood × trust ${fmt(su.trust_prior, 2)} × behaviour ${fmt(su
     ['Centroid term', fmt(b.centroid_term, 4)], ['Orientation Δ', `${fmt(b.orientation_delta_deg, 2)}°`], ['Orientation term', fmt(b.orientation_term, 4)],
     ['Area ratio', fmt(b.area_ratio, 4)], ['Geometric score', fmt(su.geometric_score, 4)], ['Likelihood', fmt(su.likelihood, 4)],
     ['Posterior', fmt(su.posterior, 4)], ['AIS trust score', fmt(su.trust_score, 3)], ['Classification', su.classification || '—'],
-    ['Trust flags', (su.trust_flags || []).join(', ') || 'none'], ['Behaviour flags', (su.behaviour_flags || []).join(', ') || 'none'],
+    ['Trust flags', (su.trust_flags || []).map(flagDetail).join('; ') || 'none'], ['Behaviour flags', (su.behaviour_flags || []).map(flagDetail).join('; ') || 'none'],
   ];
   const hyps = su.top_hypotheses || [];
   el.innerHTML = `
@@ -840,7 +854,7 @@ function openCompare() {
     ['AIS trust factor', s => s.trust_prior, v => factorTxt(v).t, 0],
     ['Behaviour factor', s => s.behaviour_prior, v => factorTxt(v).t, 0],
     ['AIS gap at release', s => s.gap_coincidence ? 'yes' : 'no', v => v, 0],
-    ['Flags', s => [...(s.trust_flags || []), ...(s.behaviour_flags || [])].join(', ') || '—', v => esc(v), 0],
+    ['Flags', s => codes(s).join(', ') || '—', v => esc(v), 0],
   ];
   $('#compareBody').innerHTML = `<table class="cmp"><thead><tr><th>Evidence</th>${su.map(s => `<th class="${s.mmsi === S.sel ? 'sel' : ''}">#${s.rank} ${esc(s.vessel_name || s.mmsi)}<small>MMSI ${s.mmsi}</small></th>`).join('')}</tr></thead><tbody>
     ${rows.map(r => {
