@@ -35,6 +35,19 @@ time. `requirements-demo.txt` leaves out `torch`; install the full set with
 `pip install -e .` to run detection or training. See
 [RUN_ON_ANOTHER_PC.md](RUN_ON_ANOTHER_PC.md) for macOS / Linux.
 
+### Trained model (optional)
+
+The dashboards and the shipped cases work without it. Detection, `run_demo.sh` with real
+detection, and the `/ops` Satellite tab need the trained segmenter, which is too large for the
+repository (GitHub's 100 MB file limit):
+
+1. Download **`seg.pt`** (155 MB) from the
+   [v1.0 release](https://github.com/ALEN4343/samudra-sih26143/releases/tag/v1.0).
+2. Put it at `data/models/seg.pt`.
+
+DeepLabv3+ (ResNet-50), epoch 7 — validation oil IoU 0.715, held-out test oil IoU 0.742.
+Without it, the pipeline falls back to the synthetic slick and says so.
+
 ### The four views
 
 | Route | What it is |
