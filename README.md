@@ -12,6 +12,12 @@ envelope, prunes the vessel field to those that could physically have been there
 forward-simulates a release hypothesis for every survivor, ranks them, forecasts where
 the slick goes next, and writes a hash-chained evidence dossier.
 
+### 🌊 Live demo: **<https://samudra-sih.vercel.app>**
+
+Opens straight into the investigator view — no install. It is a static snapshot of the
+pipeline's own results for the two shipped cases (`demo-001`, `kutch-exercise-001`); to run
+the full system, see [Quick start](#quick-start-windows).
+
 **Full project report:** [SAMUDRA_Project_Report.pdf](SAMUDRA_Project_Report.pdf) — aim,
 architecture, algorithms, data, results, limitations and how to run it.
 
@@ -58,6 +64,17 @@ Without it, the pipeline falls back to the synthetic slick and says so.
 | `/ops` | Operations console: runs the real model over real SAR (Satellite tab) and feeds it into the same attribution engine. |
 
 Open a specific case with `?case=`, e.g. `/investigate?case=kutch-exercise-001`.
+
+### Updating the live demo
+
+The live demo is the investigator view exported to plain files by
+`scripts/export_static.py`, which calls the same API functions the server uses, so the
+hosted numbers cannot differ from a local run. After changing a case or the page:
+
+```bash
+.venv\Scripts\python.exe scripts\export_static.py
+npx vercel deploy site --prod --yes
+```
 
 ---
 
